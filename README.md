@@ -135,15 +135,23 @@ project-root/
 
 ## Installation
 
-1. Clone the repository:
+1. Clone the repository using degit (recommended for a clean start) or git:
 ```bash
-git clone <repository-url>
-cd boilerplate-fiber-v3
+# Using degit
+npx degit rachmanzz/fiber-starter my-project
+cd my-project
+
+# Or using git
+git clone https://github.com/rachmanzz/fiber-starter.git my-project
+cd my-project
 ```
 
-2. Install dependencies:
+2. Initialize the project (change module name):
 ```bash
-go mod download
+# Replace github.com/rachmanzz/fiber-starter with your own module name
+go mod edit -module github.com/username/my-project
+find . -type f -name "*.go" -print0 | xargs -0 sed -i 's|github.com/rachmanzz/fiber-starter|github.com/username/my-project|g'
+go mod tidy
 ```
 
 3. Set up environment variables:
