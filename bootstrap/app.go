@@ -1,14 +1,29 @@
 package bootstrap
 
-import "github.com/rachmanzz/fiber-starter/cores"
+import (
+	"context"
 
-type Application struct{}
+	"github.com/rachmanzz/fiber-starter/app/routes"
+	"github.com/rachmanzz/fiber-starter/cores"
+)
+
+type Application struct {
+	contract *cores.AppContracts
+}
 
 func NewApplication() *Application {
-	return &Application{}
+	core := cores.CreateContract()
+	return &Application{
+		core,
+	}
 }
 
 func (app *Application) Bootstrap() error {
-	_ = cores.CreateContract()
-	return nil
+	ctx := context.Background()
+	app.contract.Initialize()
+	app.contract.CreateApp(ctx).RegisterRoute(func(app *cores.AppContracts) error {
+		routes.ApiRoute(app.App)
+		return nil
+	})
+	return app.contract.Start()
 }
