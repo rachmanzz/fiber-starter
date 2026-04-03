@@ -2,6 +2,7 @@ package cores
 
 import (
 	"log"
+	"sync"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/joho/godotenv"
@@ -9,11 +10,12 @@ import (
 )
 
 var (
-	instance *config.ConfigRegistry
+	instance   *config.ConfigRegistry
+	configOnce sync.Once
 )
 
 func Config() *config.ConfigRegistry {
-	once.Do(func() {
+	configOnce.Do(func() {
 		_ = godotenv.Load()
 		cfg := &config.ConfigRegistry{}
 
