@@ -1,0 +1,14 @@
+# Binaries
+server
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.*
+
+# Dependencies
+vendor/
+spark-cli
