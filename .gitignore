@@ -13,3 +13,4 @@ logs/
 vendor/
 spark-cli
 tmp
+backup-readme.md
