@@ -148,10 +148,8 @@ cd my-project
 
 2. Initialize the project (change module name):
 ```bash
-# Replace github.com/rachmanzz/fiber-starter with your own module name
-go mod edit -module github.com/username/my-project
-find . -type f -name "*.go" -print0 | xargs -0 sed -i 's|github.com/rachmanzz/fiber-starter|github.com/username/my-project|g'
-go mod tidy
+# This will automatically update the module name in all files and go.mod
+./spark init
 ```
 
 3. Set up environment variables:
@@ -160,39 +158,43 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-4. Generate database code:
-```bash
-make sqlc
-```
-
-5. Run migrations:
-```bash
-make migrate
-```
-
 ## Usage
 
 ### Development
 
-Run the API server:
+Run the API server with live reloading (Air):
 ```bash
-make run
+./spark dev
 ```
+
+### Database Migrations
+
+Spark uses **Tern** for migrations. It will automatically install tern and initialize `tern.conf` if needed.
+
+Run migrations:
+```bash
+./spark migrate
+```
+
+Create a new migration:
+```bash
+./spark migrate new create_users_table
+```
+
+### Available Commands (Spark CLI)
+
+- `./spark init` - Initialize the project with a new module name
+- `./spark dev` - Run the application with live reloading using Air
+- `./spark migrate` - Run database migrations
+- `./spark migrate new [name]` - Create a new migration file
+- `./spark version` - Print the version number of Spark
+
+### Docker Support
 
 Run with Docker:
 ```bash
 docker-compose up --build
 ```
-
-### Available Commands (Makefile)
-
-- `make run` - Run the API server
-- `make build` - Build the application
-- `make sqlc` - Generate database code
-- `make migrate` - Run database migrations
-- `make test` - Run tests
-- `make lint` - Run linter
-- `make docker` - Build Docker image
 
 ### API Endpoints
 
