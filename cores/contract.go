@@ -13,6 +13,7 @@ type RouteFunc func(app *AppContracts) error
 type AppContracts struct {
 	App         *fiber.App
 	beforeHooks []HookFunc
+	afterHooks  []HookFunc
 	once        sync.Once
 }
 
@@ -22,6 +23,7 @@ func CreateContract() *AppContracts {
 
 func (app *AppContracts) Initialize() *AppContracts {
 	NewLogger()
+	zap.L().Debug("Logger initialized successfully")
 	return app
 }
 
@@ -39,6 +41,19 @@ func (app *AppContracts) CreateApp(ctx context.Context) *AppContracts {
 
 func (app *AppContracts) RegisterBefore(hook HookFunc) {
 	app.beforeHooks = append(app.beforeHooks, hook)
+}
+func (app *AppContracts) RegisterAfter(hook HookFunc) {
+	app.afterHooks = append(app.afterHooks, hook)
+}
+
+func (app *AppContracts) runAfterHooks(ctx context.Context) error {
+	for _, hook := range app.afterHooks {
+		if err := hook(ctx, app); err != nil {
+			zap.L().Error("after hook execution failed", zap.Error(err))
+			// Kita lanjut ke hook berikutnya meskipun ada yang gagal
+		}
+	}
+	return nil
 }
 
 func (app *AppContracts) runBeforeHooks(ctx context.Context) error {
@@ -58,8 +73,21 @@ func (app *AppContracts) Start() error {
 	return app.App.Listen(Config().App.Port)
 }
 
-func (app *AppContracts) Shutdown() error {
+func (app *AppContracts) Shutdown(ctx context.Context) error {
 	zap.L().Info("shutting down application...")
+
+	// Pastikan log terakhir tercetak (Flush buffer)
+	defer zap.L().Sync()
+
+	// 1. Jalankan After Hooks (Log "shutdown" kamu ada di sini)
+	if err := app.runAfterHooks(ctx); err != nil {
+		zap.L().Error("After hooks error", zap.Error(err))
+	}
+
+	// 2. Shutdown Fiber
+	if app.App != nil {
+		return app.App.ShutdownWithContext(ctx)
+	}
 
 	return nil
 }
