@@ -12,3 +12,4 @@ logs/
 # Dependencies
 vendor/
 spark-cli
+tmp
