@@ -6,36 +6,6 @@ A production-ready Go backend boilerplate using Fiber v3, following clean archit
 
 ```
 project-root/
-├── cmd/                          # Application entrypoints
-│   ├── api/
-│   │   └── main.go              # API server entrypoint
-│   └── cron/
-│       └── main.go              # Cron  entrypoint
-│
-├── bootstrap/
-│   ├── app.go              # Main application bootstrap
-│   ├── database.go         # Database initialization
-│   ├── server.go           # HTTP server initialization
-│   ├── providers.go        # Provider registration
-│   └── health.go           # Health check aggregation
-│
-├── providers/                     # Custom providers directory
-│   ├── provider.go               # Provider interface and types
-│   ├── cache/                    # Cache provider example
-│   │   ├── cache.go             # Cache provider implementation
-│   │   └── config.go            # Cache configuration
-│   ├── queue/                    # Queue provider example
-│   │   ├── queue.go             # Queue provider implementation
-│   │   └── config.go            # Queue configuration
-│   └── logger/                   # Logger provider example
-│       ├── logger.go            # Logger provider implementation
-│       └── config.go            # Logger configuration
-│
-├── config/                       # Configuration
-│   ├── config.go                # Config loader
-│   ├── database.go              # Database configuration
-│   └── env.go                   # Environment variables
-│
 ├── app/                          # Application layer
 │   ├── delivery/                 # HTTP handlers (delivery layer)
 │   ├── dto/                      # Data Transfer Objects
@@ -59,79 +29,48 @@ project-root/
 │       ├── logger.go            # Logging middleware
 │       └── cors.go              # CORS middleware
 │
-├── cores/                        # Core features
-│   ├── database/              # Database core (non-editable)
-│   │   ├── pool.go           # Connection pool management
-│   │   ├── monitoring.go     # Database monitoring
-│   │   ├── transaction.go    # Transaction handling
-│   │   └── context.go        # Database context utilities
-│   ├── logging/              # Logging core (non-editable)
-│   │   ├── logger.go         # Zap logger initialization
-│   │   ├── config.go         # Logger configuration
-│   │   ├── level.go          # Log level definitions
-│   │   └── output.go         # Output destinations (terminal, file, custom)
-│   ├── response/             # Response core (non-editable)
-│   │   ├── response.go       # Core response implementation
-│   │   ├── success.go        # Success response builders
-│   │   ├── error.go          # Error response builders
-│   │   └── codes.go          # HTTP status code mappings
-│   ├── errors/              # Core error definitions (non-editable)
-│   │   ├── errors.go       # Core error types and constructors
-│   │   ├── codes.go        # Error code constants
-│   │   ├── sql.go          # SQL error mapping
-│   │   ├── validation.go   # Validation error builders
-│   │   └── checker.go      # Error checking utilities
-│   └── config/              # Core config structures (non-editable)
-│       └── config.go        # Config struct definitions
+├── bootstrap/                    # Application bootstrap
+│   └── app.go                    # App lifecycle & graceful shutdown logic
 │
-├── utils/                        # Utility functions
-│   ├── response.go              # Response helpers
-│   ├── validator.go             # Validation helpers
-│   └── hash.go                  # Hashing utilities
+├── cmd/                          # Application entrypoints
+│   └── server/
+│       └── main.go               # Main API server entrypoint
 │
-├── db/                           # Generated database code (sqlc)
-│   ├── models.go                # Generated models
-│   ├── queries.sql.go           # Generated queries
-│   └── db.go                    # DB connection
+├── config/                       # Configuration files
+│   ├── app.go                    # Application specific config
+│   ├── config.go                 # Main config loader
+│   ├── database.go               # Database connection settings
+│   └── logger.go                 # Logging settings
 │
-├── queries/                      # SQL queries for sqlc
-│   ├── users.sql                # User queries
-│   └── {entity}.sql             # Entity queries
+├── cores/                        # Core framework components
+│   ├── config.go                 # Core configuration structures
+│   ├── contract.go               # App contract & hook registration
+│   ├── database.go               # Database connection pool (pgx)
+│   └── logger.go                 # Zap logger core initialization
 │
-├── migrations/                   # Database migrations (tern)
-│   ├── 001_init.sql             # Initial schema
-│   ├── 002_create_users.sql     # Users table
-│   └── tern.conf                # Tern configuration
+├── spark-cli/                    # Spark CLI source code
+│   └── main.go                   # CLI implementation
 │
-├── scripts/                      # Build and deployment scripts
-│   ├── build.sh                 # Build script
-│
-├── test/                         # Integration tests
-│   ├── integration/             # Integration tests
-│   └── e2e/                     # End-to-end tests
-│
+├── spark                         # Spark CLI binary
+├── logs/                         # Application logs
+├── tmp/                          # Temporary build files
 ├── go.mod                        # Go module definition
 ├── go.sum                        # Go dependencies checksum
-├── sqlc.yaml                     # SQLC configuration
-├── Makefile                      # Make commands
-├── Dockerfile                    # Docker configuration
-├── docker-compose.yaml          # Docker compose
 └── README.md                     # Project documentation
 ```
 
 ## Features
 
 - **Fiber v3** - Fast and lightweight HTTP framework
+- **Spark CLI** - Custom CLI for dev server, migrations, and initialization
 - **Clean Architecture** - Repository and service patterns
-- **Database** - PostgreSQL with sqlc for type-safe queries
-- **Migrations** - Tern for database migrations
-- **Logging** - Zap logger with configurable outputs
-- **Error Handling** - Centralized error handling with custom error types
+- **Database** - PostgreSQL with pgx/v5 for high-performance pooling
+- **Migrations** - Integrated Tern support for database migrations
+- **Lifecycle Management** - Built-in Graceful Shutdown & Hook system (Before/After)
+- **Logging** - Production-grade Zap logger with configurable outputs
+- **Environment Driven** - Configuration via environment variables
+- **Error Handling** - Centralized error handling structure
 - **Response Format** - Consistent API response structure
-- **Middleware** - Pre-built auth, CORS, and logging middleware
-- **Provider System** - Extensible provider architecture for cache, queue, and logging
-- **Health Checks** - Aggregated health check system
-- **Docker Support** - Dockerfile and docker-compose configuration
 
 ## Installation
 
