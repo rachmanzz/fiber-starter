@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
 
@@ -119,6 +120,9 @@ var migrateNewCmd = &cobra.Command{
 }
 
 func prepareTernEnvironment() {
+	if err := godotenv.Load(); err != nil {
+		fmt.Println("Warning: .env file not found, using system environment variables")
+	}
 	ensureTernInstalled()
 	ensureTernConfig()
 
