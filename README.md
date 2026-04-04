@@ -120,6 +120,78 @@ Create a new migration:
 ./spark migrate new create_users_table
 ```
 
+### Database Queries (SQLC)
+
+This project uses **SQLC** for type-safe database access.
+
+1.  **Define Queries**: Place your SQL query files in the `queries/` directory at the root (e.g., `queries/users.sql`).
+2.  **Configuration**: To link your queries with the repository layer, ensure you have a `sqlc.yaml` in the root with the following configuration:
+
+```yaml
+version: "2"
+sql:
+  - schema: "migrations" # or your schema path
+    queries: "queries"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "repository"
+        out: "app/repository"
+        sql_package: "pgx/v5"
+```
+
+3.  **Generate Code**: Run the following command to generate the Go code:
+```bash
+sqlc generate
+```
+The generated files will be placed in `app/repository/`, making them ready to be used by your services.
+
+### Testing
+
+Fiber v3 is designed to be easily testable. This boilerplate follows Go's standard testing patterns combined with Fiber's built-in testing utilities.
+
+#### Unit Testing
+
+Fiber v3 provides the `app.Test` method to simulate HTTP requests without starting a network server. This makes tests extremely fast.
+
+**Best Practices:**
+- Use `github.com/stretchr/testify/assert` for idiomatic assertions.
+- Use **Dependency Injection** to pass mock repositories or services into your handlers.
+- Use **Table-Driven Tests** for comprehensive coverage.
+
+**Example Unit Test:**
+```go
+func TestUserHandler(t *testing.T) {
+    // 1. Setup
+    app := fiber.New()
+    mockRepo := new(MockUserRepository)
+    app.Get("/users/:id", handlers.GetUser(mockRepo))
+
+    // 2. Create Request
+    req, _ := http.NewRequest("GET", "/users/1", nil)
+
+    // 3. Perform Test
+    // In v3, Test takes (req, timeout_ms). Use -1 for no timeout.
+    resp, err := app.Test(req, -1)
+
+    // 4. Assertions
+    assert.NoError(t, err)
+    assert.Equal(t, 200, resp.StatusCode)
+}
+```
+
+#### Integration Testing
+
+For integration tests that require a real database, it is recommended to:
+1.  Use a dedicated **test database**.
+2.  Run migrations before tests using `./spark migrate`.
+3.  Optionally use **Testcontainers** to spin up temporary PostgreSQL instances in Docker.
+
+To run all tests:
+```bash
+go test ./...
+```
+
 ### Available Commands (Spark CLI)
 
 - `./spark init` - Initialize the project with a new module name
