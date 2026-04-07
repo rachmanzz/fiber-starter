@@ -1,6 +1,6 @@
 # Fiber V3 Boilerplate
 
-A production-ready Go backend boilerplate using Fiber v3, following clean architecture principles with repository and service patterns.
+A Go backend boilerplate using Fiber v3, following clean architecture principles with repository and service patterns.
 
 ## Directory Layout
 
