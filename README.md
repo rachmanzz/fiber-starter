@@ -193,12 +193,14 @@ go test ./...
 ```
 
 ### Available Commands (Spark CLI)
+[spark Resurce](https://github.com/rachmanzz/fiber-starter/tree/with-spark-cli)
 
-- `./spark init` - Initialize the project with a new module name
-- `./spark dev` - Run the application with live reloading using Air
-- `./spark migrate` - Run database migrations
-- `./spark migrate new [name]` - Create a new migration file
-- `./spark version` - Print the version number of Spark
+- `spark init` - Initialize the project with a new module name.
+- `spark dev` - Run the application with live reloading using Air.
+- `spark migrate` - Run all pending database migrations.
+- `spark migrate --to -2` - Migrate to a specific version.
+- `spark migrate new [name]` - Create a new migration file.
+- `spark version` - Print the version of Spark.
 
 ### Docker Support
 
