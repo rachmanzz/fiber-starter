@@ -194,7 +194,7 @@ go test ./...
 
 ### Available Commands (Spark CLI)
 
-[spark Resource](https://github.com/rachmanzz/fiber-starter/tree/with-spark-cli)
+[Spark Resource](https://github.com/rachmanzz/fiber-starter/tree/with-spark-cli)
 - `spark init` - Initialize the project with a new module name.
 - `spark dev` - Run the application with live reloading using Air.
 - `spark migrate` - Run all pending database migrations.
