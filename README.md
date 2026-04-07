@@ -26,8 +26,6 @@ project-root/
 │   │
 │   └── middleware/               # HTTP middleware
 │       ├── auth.go              # Authentication middleware
-│       ├── logger.go            # Logging middleware
-│       └── cors.go              # CORS middleware
 │
 ├── bootstrap/                    # Application bootstrap
 │   └── app.go                    # App lifecycle & graceful shutdown logic
