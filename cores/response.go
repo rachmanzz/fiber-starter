@@ -24,11 +24,8 @@ func sendResponse(c fiber.Ctx, status int, payload BaseResponse) error {
 		return c.Status(status).Send(b)
 	}
 
-	// Default  JSON
 	return c.Status(status).JSON(payload)
 }
-
-// --- List Helper Functions ---
 
 func RespSuccess(c fiber.Ctx, message string, data any) error {
 	return sendResponse(c, fiber.StatusOK, BaseResponse{
