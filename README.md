@@ -69,7 +69,6 @@ project-root/
 - **Lifecycle Management** - Built-in Graceful Shutdown & Hook system (Before/After)
 - **Logging** - Production-grade Zap logger with configurable outputs
 - **Environment Driven** - Configuration via environment variables
-- **Error Handling** - Centralized error handling structure
 - **Response Format** - Consistent API response structure
 
 ## Installation
@@ -194,11 +193,12 @@ go test ./...
 
 ### Available Commands (Spark CLI)
 
-[Spark Resource](https://github.com/rachmanzz/fiber-starter/tree/with-spark-cli)
+The Spark CLI is provided as a pre-built binary (`spark`). To audit the source code or build it yourself, please refer to the [Spark Resource (with-spark-cli branch)](https://github.com/rachmanzz/fiber-starter/tree/with-spark-cli), as the `spark-cli/` directory is removed from the main branch to keep the boilerplate lean.
+
 - `spark init` - Initialize the project with a new module name.
 - `spark dev` - Run the application with live reloading using Air.
 - `spark migrate` - Run all pending database migrations.
-- `spark migrate --to -2` - Migrate to a specific version.
+- `spark migrate --to [version]` - Migrate to a specific version.
 - `spark migrate new [name]` - Create a new migration file.
 - `spark version` - Print the version of Spark.
 
