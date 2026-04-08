@@ -7,4 +7,5 @@ type DatabaseConfig struct {
 	Password string `env:"DB_PASSWORD"`
 	Name     string `env:"DB_NAME"`
 	SSLMode  string `env:"DB_SSLMODE" envDefault:"disable"`
+	Enable   bool   `env:"DB_ENABLE" envDefault:"false"`
 }
