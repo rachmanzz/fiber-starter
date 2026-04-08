@@ -74,6 +74,7 @@ func (app *AppContracts) Start() error {
 
 func (app *AppContracts) Shutdown(ctx context.Context) error {
 	zap.L().Info("shutting down application...")
+
 	defer zap.L().Sync()
 
 	if err := app.runAfterHooks(ctx); err != nil {

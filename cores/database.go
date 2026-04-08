@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rachmanzz/fiber-starter/app/repository/contract"
 	"go.uber.org/zap"
 )
 
 var (
-	db     *pgxpool.Pool
-	dbOnce sync.Once
+	db           *pgxpool.Pool
+	dbOnce       sync.Once
+	contractFn   func(*pgxpool.Pool)
+	contractOnce sync.Once
 )
 
 func ConnectDB() {
@@ -53,9 +54,18 @@ func ConnectDB() {
 
 		db = pool
 
-		contract.DatabaseContract(pool)
+		if contractFn != nil {
+			contractFn(pool)
+		}
 	})
 }
+
+func SetDatabaseContract(fn func(*pgxpool.Pool)) {
+	contractOnce.Do(func() {
+		contractFn = fn
+	})
+}
+
 func CloseDB() {
 	if db != nil {
 		db.Close()
