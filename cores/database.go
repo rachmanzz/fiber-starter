@@ -32,7 +32,6 @@ func ConnectDB() {
 			zap.L().Fatal("Failed to parse database DSN", zap.Error(err))
 		}
 
-		// Konfigurasi Pool
 		config.MaxConns = 10
 		config.MinConns = 2
 		config.MaxConnLifetime = 1 * time.Hour
@@ -43,7 +42,6 @@ func ConnectDB() {
 			zap.L().Fatal("Failed to connect to database", zap.Error(err))
 		}
 
-		// Verifikasi koneksi dengan timeout 5 detik
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
