@@ -1,217 +1,117 @@
 # Fiber V3 Boilerplate
 
-A production-ready Go backend boilerplate using Fiber v3, following clean architecture principles with repository and service patterns.
+A minimalist and high-performance Go backend boilerplate using **Fiber v3**. Designed to be lightweight, environment-driven, and easy to extend.
 
 ## Directory Layout
 
-```
-project-root/
-├── app/                          # Application layer
-│   ├── delivery/                 # HTTP handlers (delivery layer)
-│   ├── dto/                      # Data Transfer Objects
-│   │   ├── request/             # Request DTOs
-│   │   └── response/            # Response DTOs
-│   ├── repository/               # Data access layer
-│   │   ├── repository.go        # Repository interface
-│   │   ├── user_repository.go   # User data access
-│   │   └── {entity}_repository.go
-│   │
-│   ├── services/                 # Business logic layer
-│   │   ├── service.go           # Service interface
-│   │   ├── user_service.go      # User business logic
-│   │   └── {entity}_service.go
-│   │
-│   ├── route/                    # Route definitions
-│   │   └── api.go               # API routes registration
-│   │
-│   └── middleware/               # HTTP middleware
-│       ├── auth.go              # Authentication middleware
-│       ├── logger.go            # Logging middleware
-│       └── cors.go              # CORS middleware
-│
-├── bootstrap/                    # Application bootstrap
-│   └── app.go                    # App lifecycle & graceful shutdown logic
-│
-├── cmd/                          # Application entrypoints
-│   └── server/
-│       └── main.go               # Main API server entrypoint
-│
-├── config/                       # Configuration files
-│   ├── app.go                    # Application specific config
-│   ├── config.go                 # Main config loader
-│   ├── database.go               # Database connection settings
-│   └── logger.go                 # Logging settings
-│
-├── cores/                        # Core framework components
-│   ├── config.go                 # Core configuration structures
-│   ├── contract.go               # App contract & hook registration
-│   ├── database.go               # Database connection pool (pgx)
-│   └── logger.go                 # Zap logger core initialization
-│
-├── spark-cli/                    # Spark CLI source code
-│   └── main.go                   # CLI implementation
-│
-├── spark                         # Spark CLI binary
-├── logs/                         # Application logs
-├── tmp/                          # Temporary build files
-├── go.mod                        # Go module definition
-├── go.sum                        # Go dependencies checksum
-└── README.md                     # Project documentation
+```text
+.
+├── app/
+│   ├── repository/       # Data access layer (PostgreSQL with pgx/v5)
+│   └── routes/           # Route definitions and registrations
+├── bootstrap/            # Application lifecycle (Bootstrap & Graceful Shutdown)
+├── cmd/server/           # Application entrypoint (main.go)
+├── config/               # Configuration loaders (App, DB, Logger)
+├── cores/                # Core Framework components
+│   ├── config.go         # Config structures
+│   ├── contract.go       # Fiber instance & Hook management
+│   ├── database.go       # DB connection pool (pgx)
+│   ├── logger.go         # Zap logger initialization
+│   └── response.go       # Standardized API response helpers
+├── spark                 # Spark CLI binary
+└── .env.example          # Environment template
 ```
 
 ## Features
 
-- **Fiber v3** - Fast and lightweight HTTP framework
-- **Spark CLI** - Custom CLI for dev server, migrations, and initialization
-- **Clean Architecture** - Repository and service patterns
-- **Database** - PostgreSQL with pgx/v5 for high-performance pooling
-- **Migrations** - Integrated Tern support for database migrations
-- **Lifecycle Management** - Built-in Graceful Shutdown & Hook system (Before/After)
-- **Logging** - Production-grade Zap logger with configurable outputs
-- **Environment Driven** - Configuration via environment variables
-- **Response Format** - Consistent API response structure
+- **Fiber v3** - Leveraging the latest features of the Fiber framework.
+- **Spark CLI** - Custom tool for project initialization, migrations, and live-reloading.
+- **Dual Response Format** - Built-in support for **JSON** and **MessagePack** (via `Accept` header).
+- **Graceful Shutdown** - Handles OS signals to close DB connections and stop the server safely.
+- **Lifecycle Hooks** - Register "Before" and "After" hooks for setup/teardown logic.
+- **Structured Logging** - High-performance logging using **Uber Zap**.
+- **PostgreSQL Ready** - Pre-configured connection pooling using `pgx/v5`.
 
-## Installation
+## Getting Started
 
-1. Clone the repository using degit (recommended for a clean start) or git:
+### 1. Installation
+
+Clone the repository and enter the directory:
+
 ```bash
-# Using degit
-npx degit rachmanzz/fiber-starter my-project
-cd my-project
-
-# Or using git
 git clone https://github.com/rachmanzz/fiber-starter.git my-project
 cd my-project
 ```
 
-2. Initialize the project (change module name):
+### 2. Initialization
+
+Use the Spark CLI to rename the module to your own:
+
 ```bash
-# This will automatically update the module name in all files and go.mod
 ./spark init
 ```
+*This will interactively ask for your module name and update all imports automatically.*
 
-3. Set up environment variables:
+### 3. Environment Setup
+
 ```bash
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env with your database credentials and app port
 ```
 
-## Usage
+### 4. Running the App
 
-### Development
+For development with **live-reloading** (requires [Air](https://github.com/air-verse/air)):
 
-Run the API server with live reloading (Air):
 ```bash
 ./spark dev
 ```
 
-### Database Migrations
+To run normally:
 
-Spark uses **Tern** for migrations. It will automatically install tern and initialize `tern.conf` if needed.
-
-Run migrations:
 ```bash
-./spark migrate
+go run cmd/server/main.go
 ```
 
-Create a new migration:
-```bash
-./spark migrate new create_users_table
-```
+## Development Guide
 
-### Database Queries (SQLC)
+### Standard Response Structure
 
-This project uses **SQLC** for type-safe database access.
+Every response uses the `BaseResponse` structure in `cores/response.go`. You should use the helper functions in your handlers:
 
-1.  **Define Queries**: Place your SQL query files in the `queries/` directory at the root (e.g., `queries/users.sql`).
-2.  **Configuration**: To link your queries with the repository layer, ensure you have a `sqlc.yaml` in the root with the following configuration:
-
-```yaml
-version: "2"
-sql:
-  - schema: "migrations" # or your schema path
-    queries: "queries"
-    engine: "postgresql"
-    gen:
-      go:
-        package: "repository"
-        out: "app/repository"
-        sql_package: "pgx/v5"
-```
-
-3.  **Generate Code**: Run the following command to generate the Go code:
-```bash
-sqlc generate
-```
-The generated files will be placed in `app/repository/`, making them ready to be used by your services.
-
-### Testing
-
-Fiber v3 is designed to be easily testable. This boilerplate follows Go's standard testing patterns combined with Fiber's built-in testing utilities.
-
-#### Unit Testing
-
-Fiber v3 provides the `app.Test` method to simulate HTTP requests without starting a network server. This makes tests extremely fast.
-
-**Best Practices:**
-- Use `github.com/stretchr/testify/assert` for idiomatic assertions.
-- Use **Dependency Injection** to pass mock repositories or services into your handlers.
-- Use **Table-Driven Tests** for comprehensive coverage.
-
-**Example Unit Test:**
 ```go
-func TestUserHandler(t *testing.T) {
-    // 1. Setup
-    app := fiber.New()
-    mockRepo := new(MockUserRepository)
-    app.Get("/users/:id", handlers.GetUser(mockRepo))
-
-    // 2. Create Request
-    req, _ := http.NewRequest("GET", "/users/1", nil)
-
-    // 3. Perform Test
-    // In v3, Test takes (req, timeout_ms). Use -1 for no timeout.
-    resp, err := app.Test(req, -1)
-
-    // 4. Assertions
-    assert.NoError(t, err)
-    assert.Equal(t, 200, resp.StatusCode)
+func MyHandler(c fiber.Ctx) error {
+    // Success (200 OK)
+    return cores.RespSuccess(c, "Data retrieved", myData)
+    
+    // Error (400 Bad Request)
+    return cores.RespBadReq(c, "Invalid input", err.Error())
 }
 ```
 
-#### Integration Testing
+### Accessing the Database
 
-For integration tests that require a real database, it is recommended to:
-1.  Use a dedicated **test database**.
-2.  Run migrations before tests using `./spark migrate`.
-3.  Optionally use **Testcontainers** to spin up temporary PostgreSQL instances in Docker.
+The database connection is managed in `cores/database.go`. You can access the `pgxpool` instance using:
 
-To run all tests:
-```bash
-go test ./...
+```go
+db := cores.DB()
+rows, err := db.Query(ctx, "SELECT ...")
 ```
 
-### Available Commands (Spark CLI)
+### Adding New Routes
 
-The Spark CLI is provided as a pre-built binary (`spark`). To audit the source code or build it yourself, please refer to the [Spark Resource (with-spark-cli branch)](https://github.com/rachmanzz/fiber-starter/tree/with-spark-cli), as the `spark-cli/` directory is removed from the main branch to keep the boilerplate lean.
+Define your routes in `app/routes/api.go`. They are automatically loaded during the bootstrap process in `bootstrap/app.go`.
 
-- `spark init` - Initialize the project with a new module name.
-- `spark dev` - Run the application with live reloading using Air.
-- `spark migrate` - Run all pending database migrations.
-- `spark migrate --to [version]` - Migrate to a specific version.
-- `spark migrate new [name]` - Create a new migration file.
-- `spark version` - Print the version of Spark.
+## Spark CLI Commands
 
-### Docker Support
+The `spark` binary is a helper tool for common tasks. 
+*(Source code for the CLI is maintained in the `with-spark-cli` branch for auditing/custom builds).*
 
-Run with Docker:
-```bash
-docker-compose up --build
-```
-
-### API Endpoints
-
-The boilerplate includes example routes. Check `app/route/api.go` for the default route configuration.
+- `spark init` - Initialize project and rename module.
+- `spark dev` - Run development server with live-reloading.
+- `spark migrate` - Run database migrations using [Tern](https://github.com/jackc/tern).
+- `spark migrate new [name]` - Create a new migration file in `/migrations`.
+- `spark version` - Show CLI version.
 
 ## License
 
