@@ -9,7 +9,7 @@ The database connection is managed centrally in `cores/database.go` using **pgxp
 ## Environment Requirement
 
 Make sure these variables exist in your .env file:
-
+```
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
@@ -17,7 +17,7 @@ DB_PASSWORD=your_password
 DB_NAME=your_database
 DB_SSLMODE=disable
 DB_ENABLE=true
-
+```
 ## Accessing the Database
 
 You should never access the database connection directly in your handlers or services. Instead, use the registered repository contract.
