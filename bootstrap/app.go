@@ -18,18 +18,12 @@ type Application struct {
 
 func NewApplication() *Application {
 	core := cores.CreateContract().Initialize()
+	InitializedHooks(core)
+	RegisterDatabaseContract()
 
-	core.RegisterBefore(func(ctx context.Context, app *cores.AppContracts) error {
-		//cores.ConnectDB()
-		return nil
-	})
-
-	// 4. Register After Hooks
-	core.RegisterAfter(func(ctx context.Context, app *cores.AppContracts) error {
-		//cores.CloseDB()
-		return nil
-	})
-
+	if cores.Config().Database.Enable {
+		cores.ConnectDB()
+	}
 	return &Application{
 		contract: core,
 	}
