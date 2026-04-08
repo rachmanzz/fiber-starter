@@ -73,31 +73,6 @@ To run normally:
 go run cmd/server/main.go
 ```
 
-## Development Guide
-
-### Standard Response Structure
-
-Every response uses the `BaseResponse` structure in `cores/response.go`. You should use the helper functions in your handlers:
-
-```go
-func MyHandler(c fiber.Ctx) error {
-    // Success (200 OK)
-    return cores.RespSuccess(c, "Data retrieved", myData)
-    
-    // Error (400 Bad Request)
-    return cores.RespBadReq(c, "Invalid input", err.Error())
-}
-```
-
-### Accessing the Database
-
-The database connection is managed in `cores/database.go`. You can access the `pgxpool` instance using:
-
-```go
-db := cores.DB()
-rows, err := db.Query(ctx, "SELECT ...")
-```
-
 ### Adding New Routes
 
 Define your routes in `app/routes/api.go`. They are automatically loaded during the bootstrap process in `bootstrap/app.go`.
