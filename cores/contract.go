@@ -50,7 +50,6 @@ func (app *AppContracts) runAfterHooks(ctx context.Context) error {
 	for _, hook := range app.afterHooks {
 		if err := hook(ctx, app); err != nil {
 			zap.L().Error("after hook execution failed", zap.Error(err))
-			// Kita lanjut ke hook berikutnya meskipun ada yang gagal
 		}
 	}
 	return nil
@@ -76,15 +75,12 @@ func (app *AppContracts) Start() error {
 func (app *AppContracts) Shutdown(ctx context.Context) error {
 	zap.L().Info("shutting down application...")
 
-	// Pastikan log terakhir tercetak (Flush buffer)
 	defer zap.L().Sync()
 
-	// 1. Jalankan After Hooks (Log "shutdown" kamu ada di sini)
 	if err := app.runAfterHooks(ctx); err != nil {
 		zap.L().Error("After hooks error", zap.Error(err))
 	}
 
-	// 2. Shutdown Fiber
 	if app.App != nil {
 		return app.App.ShutdownWithContext(ctx)
 	}
