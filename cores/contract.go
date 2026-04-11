@@ -27,15 +27,13 @@ func (app *AppContracts) Initialize() *AppContracts {
 	return app
 }
 
-func (app *AppContracts) CreateApp(ctx context.Context) *AppContracts {
+func (app *AppContracts) CreateApp(ctx context.Context, config ...fiber.Config) *AppContracts {
 	app.once.Do(func() {
+		app.App = fiber.New(config...)
 		if err := app.runBeforeHooks(ctx); err != nil {
 			zap.L().Fatal("hook failed to run", zap.Error(err))
 		}
-
-		app.App = fiber.New()
 	})
-
 	return app
 }
 
