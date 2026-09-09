@@ -1,36 +1,43 @@
 # Database Migrations
 
-This project uses `tern` for managing database migrations. `tern` is a standalone migration tool that provides a simple and effective way to evolve your database schema.
+This project uses [Goose](https://github.com/pressly/goose) for managing database migrations. Goose is a widely used, actively maintained migration tool that supports plain SQL migrations with `-- +goose Up` / `-- +goose Down` annotations.
 
-## Using Tern
-
-To use `tern` for migrations, you need to ensure that the `TERN_MIGRATIONS` environment variable is set to the directory where your migration files are located. In this project, migration files are expected to be in a `migrations` directory.
-
-You can set this environment variable in your shell before running `tern` commands:
-
-```bash
-export TERN_MIGRATIONS=migrations
-tern migrate
-```
-
-This command will apply any pending migrations found in the `migrations` directory.
-
-For more information on `tern` commands, please refer to the official `tern` documentation.
+Migration files live in the `migrations/` directory at the project root.
 
 ## Using Spark CLI for Migrations
 
-The project's `spark` CLI tool also provides a convenient wrapper for running migrations using `tern`. This simplifies the process by abstracting away the need to manually set environment variables.
+The `spark` CLI wraps goose and builds the database DSN automatically from your `.env` file (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSLMODE`), so you never have to pass connection strings by hand.
 
-To run migrations using `spark`, you can use the following command:
+- `./spark migrate` - Apply all pending migrations (`goose up`).
+- `./spark migrate --to [version]` - Migrate up to a specific version.
+- `./spark migrate down` - Roll back the most recently applied migration.
+- `./spark migrate new [name]` - Create a new SQL migration file in `/migrations`.
+
+If goose is not installed, spark will install it automatically via `go install github.com/pressly/goose/v3/cmd/goose@latest`.
+
+## Using Goose Directly
+
+You can also run goose yourself. Build the DSN from your `.env` values:
 
 ```bash
-./spark migrate
+goose -dir migrations postgres "postgres://user:password@localhost:5432/your_database?sslmode=disable" up
+goose -dir migrations postgres "postgres://user:password@localhost:5432/your_database?sslmode=disable" down
+goose -dir migrations create add_users_table sql
 ```
 
-This command will execute the `tern migrate` command with the appropriate `TERN_MIGRATIONS` environment variable already configured by `spark`.
+## Migration File Format
 
-Here's a list of `spark` migration commands:
+Each migration is a SQL file with goose annotations:
 
-- `./spark migrate` - Run database migrations.
-- `./spark migrate --to [version]` - Rollback to a specific migration version.
-- `./spark migrate new [name]` - Create a new migration file.
+```sql
+-- +goose Up
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE
+);
+
+-- +goose Down
+DROP TABLE users;
+```
+
+For more commands and options, refer to the official [goose documentation](https://github.com/pressly/goose#usage).
