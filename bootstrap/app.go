@@ -14,7 +14,7 @@ type Application struct {
 
 func NewApplication() *Application {
 	core := cores.CreateContract().Initialize()
-	InitializedHooks(core)
+	RegisterHook(core)
 	RegisterDatabaseContract()
 
 	if cores.Config().Database.Enable {
@@ -27,7 +27,9 @@ func NewApplication() *Application {
 
 func (app *Application) Bootstrap() *Application {
 	ctx := context.Background()
-	app.contract.CreateApp(ctx).RegisterRoute(func(c *cores.AppContracts) error {
+	core := app.contract.CreateApp(ctx)
+	RegisterMiddleware(core.App)
+	core.RegisterRoute(func(c *cores.AppContracts) error {
 		routes.ApiRoute(c.App)
 		return nil
 	})

@@ -6,7 +6,7 @@ import (
 	"github.com/rachmanzz/fiber-starter/cores"
 )
 
-func InitializedHooks(core *cores.AppContracts) {
+func RegisterHook(core *cores.AppContracts) {
 	core.RegisterBefore(func(ctx context.Context, app *cores.AppContracts) error {
 		return nil
 	})
