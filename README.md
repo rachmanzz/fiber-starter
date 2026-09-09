@@ -9,7 +9,7 @@ A minimalist and high-performance Go backend boilerplate using **Fiber v3**. Des
 ├── app/
 │   ├── repository/       # Data access layer (PostgreSQL with pgx/v5)
 │   └── routes/           # Route definitions and registrations
-├── bootstrap/            # Application lifecycle (Bootstrap & Graceful Shutdown)
+├── bootstrap/            # Application lifecycle (Bootstrap, Middleware & Graceful Shutdown)
 ├── cmd/server/           # Application entrypoint (main.go)
 ├── config/               # Configuration loaders (App, DB, Logger)
 ├── cores/                # Core Framework components
@@ -18,7 +18,8 @@ A minimalist and high-performance Go backend boilerplate using **Fiber v3**. Des
 │   ├── database.go       # DB connection pool (pgx)
 │   ├── logger.go         # Zap logger initialization
 │   └── response.go       # Standardized API response helpers
-├── spark                 # Spark CLI binary
+├── docs/                 # Layer & tooling documentation
+├── spark-cli/            # Source code of the Spark CLI
 └── .env.example          # Environment template
 ```
 
@@ -43,7 +44,34 @@ git clone https://github.com/rachmanzz/fiber-starter.git my-project
 cd my-project
 ```
 
-### 2. Initialization
+### 2. Build the Spark CLI
+
+Build the Spark CLI binary from source (the result is already executable, no `chmod` needed):
+
+```bash
+# Linux / macOS (runs on your current platform)
+go build -o spark ./spark-cli
+```
+
+Cross-compiling for another OS:
+
+```bash
+# Linux (amd64)
+GOOS=linux GOARCH=amd64 go build -o spark ./spark-cli
+
+# macOS Apple Silicon
+GOOS=darwin GOARCH=arm64 go build -o spark ./spark-cli
+
+# macOS Intel
+GOOS=darwin GOARCH=amd64 go build -o spark ./spark-cli
+
+# Windows
+GOOS=windows GOARCH=amd64 go build -o spark.exe ./spark-cli
+```
+
+> **Note (Windows):** the binary is `spark.exe` — run it as `spark init`, without the `./` prefix.
+
+### 3. Initialization
 
 Use the Spark CLI to rename the module to your own:
 
@@ -52,14 +80,14 @@ Use the Spark CLI to rename the module to your own:
 ```
 *This will interactively ask for your module name and update all imports automatically.*
 
-### 3. Environment Setup
+### 4. Environment Setup
 
 ```bash
 cp .env.example .env
 # Edit .env with your database credentials and app port
 ```
 
-### 4. Running the App
+### 5. Running the App
 
 For development with **live-reloading** (requires [Air](https://github.com/air-verse/air)):
 
@@ -79,8 +107,7 @@ Define your routes in `app/routes/api.go`. They are automatically loaded during 
 
 ## Spark CLI Commands
 
-The `spark` binary is a helper tool for common tasks. 
-*(Source code for the CLI is maintained in the `with-spark-cli` branch for auditing/custom builds).*
+The `spark` binary is a helper tool for common tasks. Build it first with `go build -o spark ./spark-cli`, or use `go run ./spark-cli <command>` directly.
 
 - `spark init` - Initialize project and rename module.
 - `spark dev` - Run development server with live-reloading.
