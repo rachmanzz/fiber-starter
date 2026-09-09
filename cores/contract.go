@@ -3,6 +3,7 @@ package cores
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
@@ -70,18 +71,19 @@ func (app *AppContracts) Start() error {
 	return app.App.Listen(Config().App.Port)
 }
 
-func (app *AppContracts) Shutdown(ctx context.Context) error {
-	zap.L().Info("shutting down application...")
+func (app *AppContracts) SetupShutdownHook() {
+	app.App.Hooks().OnPostShutdown(func(err error) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
 
-	defer zap.L().Sync()
+		if err != nil {
+			zap.L().Error("shutdown error", zap.Error(err))
+		} else {
+			zap.L().Info("server shut down successfully")
+		}
 
-	if err := app.runAfterHooks(ctx); err != nil {
-		zap.L().Error("After hooks error", zap.Error(err))
-	}
-
-	if app.App != nil {
-		return app.App.ShutdownWithContext(ctx)
-	}
-
-	return nil
+		app.runAfterHooks(ctx)
+		zap.L().Sync()
+		return nil
+	})
 }
