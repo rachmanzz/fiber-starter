@@ -15,6 +15,7 @@ The `spark` binary is a helper tool for common tasks within this project. Here's
 
 -   `spark init`: Initializes the project and renames the module. This command will interactively ask for your module name and update all imports automatically.
 -   `spark dev`: Runs the development server with live-reloading. This requires [Air](https://github.com/air-verse/air) to be installed.
--   `spark migrate`: Runs database migrations using [Tern](https://github.com/jackc/tern).
+-   `spark migrate`: Runs database migrations using [Goose](https://github.com/pressly/goose).
+-   `spark migrate down`: Rolls back the most recently applied migration.
 -   `spark migrate new [name]`: Creates a new migration file in the `/migrations` directory with the specified name.
 -   `spark version`: Displays the current version of the Spark CLI.

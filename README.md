@@ -84,7 +84,8 @@ The `spark` binary is a helper tool for common tasks.
 
 - `spark init` - Initialize project and rename module.
 - `spark dev` - Run development server with live-reloading.
-- `spark migrate` - Run database migrations using [Tern](https://github.com/jackc/tern).
+- `spark migrate` - Run database migrations using [Goose](https://github.com/pressly/goose).
+- `spark migrate down` - Roll back the most recently applied migration.
 - `spark migrate new [name]` - Create a new migration file in `/migrations`.
 - `spark version` - Show CLI version.
 
