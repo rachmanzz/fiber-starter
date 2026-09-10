@@ -1,5 +1,6 @@
 # Binaries
 server
+spark
 
 # Logs
 logs/
@@ -13,3 +14,6 @@ logs/
 vendor/
 tmp
 backup-readme.md
+
+# Local tooling state
+.commandcode/

@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io/fs"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -92,16 +94,26 @@ var migrateTo string
 
 var migrateCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "Run database migrations using tern",
+	Short: "Run database migrations using goose",
 	Run: func(cmd *cobra.Command, args []string) {
-		prepareTernEnvironment()
+		prepareGooseEnvironment()
 
-		ternArgs := []string{"migrate"}
+		gooseArgs := []string{"up"}
 		if migrateTo != "" {
-			ternArgs = append(ternArgs, "--destination", migrateTo)
+			gooseArgs = append(gooseArgs, migrateTo)
 		}
 
-		executeTern(ternArgs)
+		executeGoose(gooseArgs)
+	},
+}
+
+var migrateDownCmd = &cobra.Command{
+	Use:   "down",
+	Short: "Roll back the most recently applied migration",
+	Run: func(cmd *cobra.Command, args []string) {
+		prepareGooseEnvironment()
+
+		executeGoose([]string{"down"})
 	},
 }
 
@@ -110,21 +122,17 @@ var migrateNewCmd = &cobra.Command{
 	Short: "Create a new migration file",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		prepareTernEnvironment()
+		prepareGooseEnvironment()
 
-		name := args[0]
-		ternArgs := []string{"new", name}
-
-		executeTern(ternArgs)
+		executeGooseNoDB([]string{"create", args[0], "sql"})
 	},
 }
 
-func prepareTernEnvironment() {
+func prepareGooseEnvironment() {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: .env file not found, using system environment variables")
 	}
-	ensureTernInstalled()
-	ensureTernConfig()
+	ensureGooseInstalled()
 
 	// Ensure migrations directory exists
 	if _, err := os.Stat("migrations"); os.IsNotExist(err) {
@@ -134,68 +142,60 @@ func prepareTernEnvironment() {
 			os.Exit(1)
 		}
 	}
-
-	// Set TERN_MIGRATIONS if not already set
-	if os.Getenv("TERN_MIGRATIONS") == "" {
-		fmt.Println("Setting TERN_MIGRATIONS=migrations")
-		os.Setenv("TERN_MIGRATIONS", "migrations")
-	}
 }
 
-func ensureTernConfig() {
-	if _, err := os.Stat("tern.conf"); os.IsNotExist(err) {
-		fmt.Println("tern.conf not found. Initializing with tern init...")
-		initCmd := exec.Command("tern", "init")
-		initCmd.Stdout = os.Stdout
-		initCmd.Stderr = os.Stderr
-		if err := initCmd.Run(); err != nil {
-			fmt.Printf("Failed to run tern init: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Println("Updating tern.conf with environment variables...")
-		configContent := `[database]
-host = {{env "DB_HOST"}}
-port = {{env "DB_PORT"}}
-database = {{env "DB_NAME"}}
-user = {{env "DB_USER"}}
-password = {{env "DB_PASSWORD"}}
-# sslmode = {{env "DB_SSLMODE"}}
-
-[data]
-`
-		if err := os.WriteFile("tern.conf", []byte(configContent), 0644); err != nil {
-			fmt.Printf("Failed to write tern.conf: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Println("tern.conf updated successfully.")
+func buildDSN() string {
+	sslMode := os.Getenv("DB_SSLMODE")
+	if sslMode == "" {
+		sslMode = "disable"
 	}
+
+	u := &url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD")),
+		Host:     net.JoinHostPort(os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
+		Path:     os.Getenv("DB_NAME"),
+		RawQuery: "sslmode=" + sslMode,
+	}
+	return u.String()
 }
 
-func executeTern(args []string) {
-	fmt.Printf("Running: tern %s\n", strings.Join(args, " "))
-	runCmd := exec.Command("tern", args...)
+func executeGoose(args []string) {
+	gooseArgs := append([]string{"-dir", "migrations", "postgres", buildDSN()}, args...)
+	display := "goose -dir migrations postgres <dsn> " + strings.Join(args, " ")
+	runGoose(gooseArgs, display)
+}
+
+func executeGooseNoDB(args []string) {
+	gooseArgs := append([]string{"-dir", "migrations"}, args...)
+	display := "goose -dir migrations " + strings.Join(args, " ")
+	runGoose(gooseArgs, display)
+}
+
+func runGoose(args []string, display string) {
+	fmt.Printf("Running: %s\n", display)
+	runCmd := exec.Command("goose", args...)
 	runCmd.Stdout = os.Stdout
 	runCmd.Stderr = os.Stderr
-	// Pass the current environment (including our newly set TERN_MIGRATIONS)
 	runCmd.Env = os.Environ()
 	if err := runCmd.Run(); err != nil {
-		fmt.Printf("Tern command failed: %v\n", err)
+		fmt.Printf("Goose command failed: %v\n", err)
+		os.Exit(1)
 	}
 }
 
-func ensureTernInstalled() {
-	_, err := exec.LookPath("tern")
+func ensureGooseInstalled() {
+	_, err := exec.LookPath("goose")
 	if err != nil {
-		fmt.Println("tern not found. Installing github.com/jackc/tern/v2@latest...")
-		installCmd := exec.Command("go", "install", "github.com/jackc/tern/v2@latest")
+		fmt.Println("goose not found. Installing github.com/pressly/goose/v3@latest...")
+		installCmd := exec.Command("go", "install", "github.com/pressly/goose/v3/cmd/goose@latest")
 		installCmd.Stdout = os.Stdout
 		installCmd.Stderr = os.Stderr
 		if err := installCmd.Run(); err != nil {
-			fmt.Printf("Failed to install tern: %v\n", err)
+			fmt.Printf("Failed to install goose: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("tern installed successfully.")
+		fmt.Println("goose installed successfully.")
 	}
 }
 
@@ -244,6 +244,7 @@ func init() {
 	rootCmd.AddCommand(devCmd)
 
 	migrateCmd.Flags().StringVarP(&migrateTo, "to", "t", "", "destination migration version")
+	migrateCmd.AddCommand(migrateDownCmd)
 	migrateCmd.AddCommand(migrateNewCmd)
 	rootCmd.AddCommand(migrateCmd)
 }

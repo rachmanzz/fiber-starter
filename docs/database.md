@@ -32,9 +32,35 @@ The contract is located in `app/repository/contract/registry.go`. It provides a 
 The database initialization follows this flow:
 - **Registration**: In `bootstrap/db.go`, we register how the database pool should be "contracted" to the repository layer.
 
+> **Note**: By default, the database contract registration in `bootstrap/db.go` is commented out. This is because the boilerplate doesn't come with pre-generated SQLC code. Once you have generated your repository code, you should uncomment it:
+> ```go
+> // bootstrap/db.go
+> func RegisterDatabaseContract() {
+>     cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
+>         contract.DatabaseContract(pool) // Uncomment this
+>     })
+> }
+> ```
+
 ## Database Queries (SQLC)
 
 This project uses **SQLC** for type-safe database access. To keep things simple and avoid "magic" that hides the implementation, SQLC is integrated manually.
+
+### Installation
+
+Before using SQLC, you need to install it on your system. 
+
+**Using Go:**
+```bash
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+```
+
+**macOS (Homebrew):**
+```bash
+brew install sqlc
+```
+
+For other platforms, refer to the [official SQLC installation guide](https://docs.sqlc.dev/en/latest/overview/install.html).
 
 ### How to use SQLC
 
