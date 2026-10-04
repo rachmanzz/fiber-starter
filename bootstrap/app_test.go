@@ -1,9 +1,9 @@
 package bootstrap_test
 
 import (
-	"context"
 	"net/http/httptest"
 	"testing"
+
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/rachmanzz/fiber-starter/app/routes"
@@ -15,14 +15,14 @@ import (
 // CreateApp -> RegisterMiddleware -> routes.
 func newTestApp(t *testing.T) *fiber.App {
 	t.Helper()
-	core := cores.CreateContract().CreateApp(context.Background())
+	core := cores.CreateContract().CreateApp()
 	bootstrap.RegisterMiddleware(core.App)
 	routes.ApiRoute(core.App)
 	return core.App
 }
 
 func TestRecoverMiddleware_PanicReturns500(t *testing.T) {
-	core := cores.CreateContract().CreateApp(context.Background())
+	core := cores.CreateContract().CreateApp()
 	bootstrap.RegisterMiddleware(core.App)
 	core.App.Get("/boom", func(c fiber.Ctx) error {
 		panic("boom")
@@ -38,7 +38,7 @@ func TestRecoverMiddleware_PanicReturns500(t *testing.T) {
 }
 
 func TestRecoverMiddleware_ServerSurvivesPanic(t *testing.T) {
-	core := cores.CreateContract().CreateApp(context.Background())
+	core := cores.CreateContract().CreateApp()
 	bootstrap.RegisterMiddleware(core.App)
 	core.App.Get("/boom", func(c fiber.Ctx) error {
 		panic("boom")
