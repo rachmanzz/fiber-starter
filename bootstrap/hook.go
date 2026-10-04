@@ -1,21 +1,24 @@
 package bootstrap
 
 import (
-	"context"
-
 	"github.com/rachmanzz/fiber-starter/cores"
+	"go.uber.org/zap"
 )
 
 func RegisterHook(core *cores.AppContracts) {
-	core.RegisterBefore(func(ctx context.Context, app *cores.AppContracts) error {
+	if core.App == nil {
+		return
+	}
+
+	core.RegisterBeforeStart(func() error {
 		return nil
 	})
 
-	core.RegisterAfter(func(ctx context.Context, app *cores.AppContracts) error {
+	core.App.Hooks().OnPostShutdown(func(err error) error {
 		if cores.Config().Database.Enable {
 			cores.CloseDB()
+			zap.L().Info("Database connection pool closed successfully")
 		}
 		return nil
 	})
-
 }
