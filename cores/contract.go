@@ -1,21 +1,19 @@
 package cores
 
 import (
-	"context"
 	"sync"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
-type HookFunc func(ctx context.Context, app *AppContracts) error
 type RouteFunc func(app *AppContracts) error
+type PreStartHook func() error
+
 type AppContracts struct {
-	App         *fiber.App
-	beforeHooks []HookFunc
-	afterHooks  []HookFunc
-	once        sync.Once
+	App              *fiber.App
+	beforeStartHooks []PreStartHook
+	once             sync.Once
 }
 
 func CreateContract() *AppContracts {
@@ -28,39 +26,21 @@ func (app *AppContracts) Initialize() *AppContracts {
 	return app
 }
 
-func (app *AppContracts) CreateApp(ctx context.Context, config ...fiber.Config) *AppContracts {
+func (app *AppContracts) CreateApp(config ...fiber.Config) *AppContracts {
 	app.once.Do(func() {
-		app.App = fiber.New(config...)
-		if err := app.runBeforeHooks(ctx); err != nil {
-			zap.L().Fatal("hook failed to run", zap.Error(err))
+		cfg := fiber.Config{
+			AppName: Config().App.Name,
 		}
+		if len(config) > 0 {
+			cfg = config[0]
+		}
+		app.App = fiber.New(cfg)
 	})
 	return app
 }
 
-func (app *AppContracts) RegisterBefore(hook HookFunc) {
-	app.beforeHooks = append(app.beforeHooks, hook)
-}
-func (app *AppContracts) RegisterAfter(hook HookFunc) {
-	app.afterHooks = append(app.afterHooks, hook)
-}
-
-func (app *AppContracts) runAfterHooks(ctx context.Context) error {
-	for _, hook := range app.afterHooks {
-		if err := hook(ctx, app); err != nil {
-			zap.L().Error("after hook execution failed", zap.Error(err))
-		}
-	}
-	return nil
-}
-
-func (app *AppContracts) runBeforeHooks(ctx context.Context) error {
-	for _, hook := range app.beforeHooks {
-		if err := hook(ctx, app); err != nil {
-			return err
-		}
-	}
-	return nil
+func (app *AppContracts) RegisterBeforeStart(hook PreStartHook) {
+	app.beforeStartHooks = append(app.beforeStartHooks, hook)
 }
 
 func (app *AppContracts) RegisterRoute(route RouteFunc) {
@@ -68,22 +48,24 @@ func (app *AppContracts) RegisterRoute(route RouteFunc) {
 }
 
 func (app *AppContracts) Start() error {
+	for _, hook := range app.beforeStartHooks {
+		if err := hook(); err != nil {
+			zap.L().Error("pre-start hook failed, aborting server listen", zap.Error(err))
+			return err
+		}
+	}
 	return app.App.Listen(Config().App.Port)
 }
 
 func (app *AppContracts) SetupShutdownHook() {
 	app.App.Hooks().OnPostShutdown(func(err error) error {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
 		if err != nil {
 			zap.L().Error("shutdown error", zap.Error(err))
 		} else {
 			zap.L().Info("server shut down successfully")
 		}
-
-		app.runAfterHooks(ctx)
 		zap.L().Sync()
 		return nil
 	})
 }
+
