@@ -82,9 +82,16 @@ var initCmd = &cobra.Command{
 		}
 
 		fmt.Println("Running go mod edit...")
-		exec.Command("go", "mod", "edit", "-module", modName).Run()
+		if err := exec.Command("go", "mod", "edit", "-module", modName).Run(); err != nil {
+			fmt.Printf("Error running go mod edit: %v\n", err)
+			return
+		}
+
 		fmt.Println("Running go mod tidy...")
-		exec.Command("go", "mod", "tidy").Run()
+		if err := exec.Command("go", "mod", "tidy").Run(); err != nil {
+			fmt.Printf("Error running go mod tidy: %v\n", err)
+			return
+		}
 
 		fmt.Printf("Successfully initialized project with module: %s\n", modName)
 	},
@@ -161,15 +168,31 @@ func buildDSN() string {
 }
 
 func executeGoose(args []string) {
-	gooseArgs := append([]string{"-dir", "migrations", "postgres", buildDSN()}, args...)
-	display := "goose -dir migrations postgres <dsn> " + strings.Join(args, " ")
-	runGoose(gooseArgs, display)
+	gooseArgs := append([]string{"-dir", "migrations"}, args...)
+	display := "goose -dir migrations " + strings.Join(args, " ")
+	runGooseWithDB(gooseArgs, display, buildDSN())
 }
 
 func executeGooseNoDB(args []string) {
 	gooseArgs := append([]string{"-dir", "migrations"}, args...)
 	display := "goose -dir migrations " + strings.Join(args, " ")
 	runGoose(gooseArgs, display)
+}
+
+func runGooseWithDB(args []string, display string, dsn string) {
+	fmt.Printf("Running: %s\n", display)
+	runCmd := exec.Command("goose", args...)
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
+	env := append(os.Environ(),
+		"GOOSE_DRIVER=postgres",
+		"GOOSE_DBSTRING="+dsn,
+	)
+	runCmd.Env = env
+	if err := runCmd.Run(); err != nil {
+		fmt.Printf("Goose command failed: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func runGoose(args []string, display string) {
