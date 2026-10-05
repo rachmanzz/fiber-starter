@@ -35,10 +35,10 @@ func ConnectDB() {
 			zap.L().Fatal("Failed to parse database DSN", zap.Error(err))
 		}
 
-		config.MaxConns = 10
-		config.MinConns = 2
-		config.MaxConnLifetime = 1 * time.Hour
-		config.MaxConnIdleTime = 30 * time.Minute
+		config.MaxConns = Config().Database.MaxConns
+		config.MinConns = Config().Database.MinConns
+		config.MaxConnLifetime = Config().Database.MaxConnLifetime
+		config.MaxConnIdleTime = Config().Database.MaxConnIdleTime
 
 		pool, err := pgxpool.NewWithConfig(context.Background(), config)
 		if err != nil {
