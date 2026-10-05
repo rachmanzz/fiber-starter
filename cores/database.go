@@ -2,7 +2,9 @@ package cores
 
 import (
 	"context"
-	"fmt"
+	"net"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
@@ -19,14 +21,14 @@ var (
 
 func ConnectDB() {
 	dbOnce.Do(func() {
-		dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-			Config().Database.User,
-			Config().Database.Password,
-			Config().Database.Host,
-			Config().Database.Port,
-			Config().Database.Name,
-			Config().Database.SSLMode,
-		)
+		u := &url.URL{
+			Scheme:   "postgres",
+			User:     url.UserPassword(Config().Database.User, Config().Database.Password),
+			Host:     net.JoinHostPort(Config().Database.Host, strconv.Itoa(Config().Database.Port)),
+			Path:     Config().Database.Name,
+			RawQuery: "sslmode=" + Config().Database.SSLMode,
+		}
+		dsn := u.String()
 
 		config, err := pgxpool.ParseConfig(dsn)
 		if err != nil {
