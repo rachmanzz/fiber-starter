@@ -2,6 +2,7 @@ package cores
 
 import (
 	"sync"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
@@ -36,6 +37,9 @@ func (app *AppContracts) CreateApp(config ...fiber.Config) *AppContracts {
 			AppName:         Config().App.Name,
 			StructValidator: NewStructValidator(),
 			ErrorHandler:    app.GlobalErrorHandler,
+			ReadTimeout:     10 * time.Second,
+			WriteTimeout:    10 * time.Second,
+			IdleTimeout:     120 * time.Second,
 		}
 		if len(config) > 0 {
 			cfg = config[0]
