@@ -74,7 +74,7 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 ```
 
 In this example:
-- `UserHandler` holds an instance of `service.UserServiceInterface`, injected through its constructor `NewUserHandler`.
+- `UserHandler` holds an instance of `services.UserServiceInterface`, injected through its constructor `NewUserHandler`.
 - Methods like `GetUserByID` and `CreateUser` are responsible for handling specific HTTP routes.
 - They parse request parameters/body, call the relevant service method, and format the response using `cores` helper functions.
 

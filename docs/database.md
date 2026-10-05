@@ -8,8 +8,9 @@ The database connection is managed centrally in `cores/database.go` using **pgxp
 
 ## Environment Requirement
 
-Make sure these variables exist in your .env file:
-```
+Copy `.env.example` to `.env` and configure the database environment variables:
+
+```env
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
@@ -17,6 +18,10 @@ DB_PASSWORD=your_password
 DB_NAME=your_database
 DB_SSLMODE=disable
 DB_ENABLE=true
+DB_MAX_CONNS=10
+DB_MIN_CONNS=2
+DB_MAX_CONN_LIFETIME=1h
+DB_MAX_CONN_IDLE_TIME=30m
 ```
 ## Accessing the Database
 
