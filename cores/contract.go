@@ -13,6 +13,7 @@ type PreStartHook func() error
 type AppContracts struct {
 	App              *fiber.App
 	beforeStartHooks []PreStartHook
+	errorMappers     []ErrorMapperFn
 	once             sync.Once
 }
 
@@ -20,19 +21,30 @@ func CreateContract() *AppContracts {
 	return &AppContracts{}
 }
 
+func (app *AppContracts) RegisterErrorMapper(mapper ...ErrorMapperFn) {
+	app.errorMappers = append(app.errorMappers, mapper...)
+}
+
 func (app *AppContracts) Initialize() *AppContracts {
 	NewLogger()
-	zap.L().Debug("Logger initialized successfully")
 	return app
 }
 
 func (app *AppContracts) CreateApp(config ...fiber.Config) *AppContracts {
 	app.once.Do(func() {
 		cfg := fiber.Config{
-			AppName: Config().App.Name,
+			AppName:         Config().App.Name,
+			StructValidator: NewStructValidator(),
+			ErrorHandler:    app.GlobalErrorHandler,
 		}
 		if len(config) > 0 {
 			cfg = config[0]
+			if cfg.StructValidator == nil {
+				cfg.StructValidator = NewStructValidator()
+			}
+			if cfg.ErrorHandler == nil {
+				cfg.ErrorHandler = app.GlobalErrorHandler
+			}
 		}
 		app.App = fiber.New(cfg)
 	})
@@ -68,4 +80,3 @@ func (app *AppContracts) SetupShutdownHook() {
 		return nil
 	})
 }
-
