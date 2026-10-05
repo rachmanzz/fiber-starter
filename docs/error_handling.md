@@ -85,6 +85,23 @@ func InitErrorHandlers(app *cores.AppContracts) {
 
 ---
 
+### 📦 Custom Error Response Envelope Structure
+
+When a custom error mapper handles an error (`handled = true`), the returned payload is automatically wrapped inside the standard `BaseResponse` envelope:
+
+```json
+{
+  "success": false,
+  "message": "Error",
+  "error": {
+    "code": "USER_NOT_FOUND",
+    "message": "user with ID 123 not found"
+  }
+}
+```
+
+---
+
 ## ⚙️ Core Fallback Behaviors
 
 If an error is not intercepted by any custom error mappers, `cores.GlobalErrorHandler` processes it through default fallback rules:

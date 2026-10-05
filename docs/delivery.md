@@ -24,7 +24,7 @@ import (
 
 // UserHandler defines the structure for our user HTTP handlers.
 type UserHandler struct {
-	userService service.UserServiceInterface // Dependency on the user service
+	userService services.UserServiceInterface // Dependency on the user service
 }
 
 // NewUserHandler creates a new instance of UserHandler.
@@ -39,14 +39,14 @@ func (h *UserHandler) GetUserByID(c fiber.Ctx) error {
 	idStr := c.Params("id")
 	id, err := strconv.ParseUint(idStr, 10, 64) // Example for uint ID
 	if err != nil {
-		return cores.RespBadRequest(c, "Invalid user ID format", nil)
+		return cores.RespBadReq(c, "Invalid user ID format", nil)
 	}
 
 	// Delegate to the service layer for business logic
 	user, err := h.userService.GetByID(c.Context(), id)
 	if err != nil {
 		// Handle different service errors (e.g., not found)
-		return cores.RespInternalServerError(c, "Failed to fetch user", err.Error())
+		return cores.RespInternalError(c, "Failed to fetch user", err)
 	}
 
 	return cores.RespSuccess(c, "User fetched successfully", user)
@@ -60,13 +60,13 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 	}
 
 	if err := c.Bind().Body(&req); err != nil {
-		return cores.RespBadRequest(c, "Invalid request body", err.Error())
+		return cores.RespBadReq(c, "Invalid request body", err)
 	}
 
 	// Delegate to the service layer
 	newUser, err := h.userService.Create(c.Context(), req.Name, req.Email)
 	if err != nil {
-		return cores.RespInternalServerError(c, "Failed to create user", err.Error())
+		return cores.RespInternalError(c, "Failed to create user", err)
 	}
 
 	return cores.RespCreated(c, "User created successfully", newUser)
