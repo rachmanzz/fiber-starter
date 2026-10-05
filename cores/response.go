@@ -14,7 +14,8 @@ type BaseResponse struct {
 }
 
 func sendResponse(c fiber.Ctx, status int, payload BaseResponse) error {
-	if c.Get("Accept") == "application/x-msgpack" {
+	match := c.Accepts("application/json", "application/x-msgpack")
+	if match == "application/x-msgpack" {
 		b, err := msgpack.Marshal(payload)
 		if err != nil {
 			zap.L().Error("failed to marshal msgpack", zap.Error(err))
