@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
@@ -116,6 +117,25 @@ func TestRespUnauthorized(t *testing.T) {
 	}
 }
 
+func TestRespForbidden(t *testing.T) {
+	app := newTestApp(func(c fiber.Ctx) error {
+		return cores.RespForbidden(c, "access denied")
+	})
+
+	resp, err := doTest(t, app, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.StatusCode != fiber.StatusForbidden {
+		t.Fatalf("expected status %d, got %d", fiber.StatusForbidden, resp.StatusCode)
+	}
+
+	res := decodeJSON(t, resp.Body)
+	if res.Success || res.Message != "access denied" {
+		t.Fatalf("unexpected payload: %+v", res)
+	}
+}
+
 func TestRespNotFound(t *testing.T) {
 	app := newTestApp(func(c fiber.Ctx) error {
 		return cores.RespNotFound(c, "not found")
@@ -178,6 +198,32 @@ func TestMsgPackResponse(t *testing.T) {
 	if !res.Success || res.Message != "msgpack" {
 		t.Fatalf("unexpected payload: %+v", res)
 	}
+}
+
+func TestContentNegotiation(t *testing.T) {
+	app := newTestApp(func(c fiber.Ctx) error {
+		return cores.RespSuccess(c, "negotiated", fiber.Map{"id": 1})
+	})
+
+	t.Run("Weighted MsgPack Priority", func(t *testing.T) {
+		resp, err := doTest(t, app, "application/json;q=0.5, application/x-msgpack;q=0.9")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got := resp.Header.Get("Content-Type"); got != "application/x-msgpack" {
+			t.Fatalf("expected application/x-msgpack, got %q", got)
+		}
+	})
+
+	t.Run("Weighted JSON Priority", func(t *testing.T) {
+		resp, err := doTest(t, app, "application/x-msgpack;q=0.5, application/json;q=0.9")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got := resp.Header.Get("Content-Type"); !strings.HasPrefix(got, "application/json") {
+			t.Fatalf("expected application/json, got %q", got)
+		}
+	})
 }
 
 func readAll(t *testing.T, r io.Reader) []byte {

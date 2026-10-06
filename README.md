@@ -28,8 +28,8 @@ A minimalist and high-performance Go backend boilerplate using **Fiber v3**. Des
 - **Fiber v3** - Leveraging the latest features of the Fiber framework.
 - **Spark CLI** - Custom tool for project initialization, migrations, and live-reloading.
 - **Dual Response Format** - Built-in support for **JSON** and **MessagePack** (via `Accept` header).
-- **Graceful Shutdown** - Handles OS signals to close DB connections and stop the server safely.
-- **Lifecycle Hooks** - Register "Before" and "After" hooks for setup/teardown logic.
+- **Graceful Shutdown & Teardown** - Handles OS signals to close DB connections and stop the server safely using Fiber v3 native hooks.
+- **Lifecycle Hooks & Pre-flight Checks** - `RegisterBeforeStart` hook for pre-flight validation (allows aborting server startup before port binding) alongside Fiber v3 native `OnPostShutdown` hook.
 - **Structured Logging** - High-performance logging using **Uber Zap**.
 - **PostgreSQL Ready** - Pre-configured connection pooling using `pgx/v5`.
 

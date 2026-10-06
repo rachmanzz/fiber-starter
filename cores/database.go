@@ -3,6 +3,9 @@ package cores
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
@@ -12,63 +15,77 @@ import (
 
 var (
 	db           *pgxpool.Pool
-	dbOnce       sync.Once
+	dbMu         sync.Mutex
 	contractFn   func(*pgxpool.Pool)
 	contractOnce sync.Once
 )
 
-func ConnectDB() {
-	dbOnce.Do(func() {
-		dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-			Config().Database.User,
-			Config().Database.Password,
-			Config().Database.Host,
-			Config().Database.Port,
-			Config().Database.Name,
-			Config().Database.SSLMode,
-		)
+// ConnectDB initializes the PostgreSQL connection pool and returns an error on failure.
+func ConnectDB() error {
+	dbMu.Lock()
+	defer dbMu.Unlock()
 
-		config, err := pgxpool.ParseConfig(dsn)
-		if err != nil {
-			zap.L().Fatal("Failed to parse database DSN", zap.Error(err))
-		}
+	if db != nil {
+		return nil
+	}
 
-		config.MaxConns = 10
-		config.MinConns = 2
-		config.MaxConnLifetime = 1 * time.Hour
-		config.MaxConnIdleTime = 30 * time.Minute
+	u := &url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(Config().Database.User, Config().Database.Password),
+		Host:     net.JoinHostPort(Config().Database.Host, strconv.Itoa(Config().Database.Port)),
+		Path:     Config().Database.Name,
+		RawQuery: "sslmode=" + Config().Database.SSLMode,
+	}
+	dsn := u.String()
 
-		pool, err := pgxpool.NewWithConfig(context.Background(), config)
-		if err != nil {
-			zap.L().Fatal("Failed to connect to database", zap.Error(err))
-		}
+	config, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return fmt.Errorf("failed to parse database DSN: %w", err)
+	}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	config.MaxConns = Config().Database.MaxConns
+	config.MinConns = Config().Database.MinConns
+	config.MaxConnLifetime = Config().Database.MaxConnLifetime
+	config.MaxConnIdleTime = Config().Database.MaxConnIdleTime
 
-		if err := pool.Ping(ctx); err != nil {
-			zap.L().Fatal("Database ping failed", zap.Error(err))
-		}
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		return fmt.Errorf("failed to create database connection pool: %w", err)
+	}
 
-		zap.L().Info("Database connection established")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-		db = pool
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return fmt.Errorf("database ping failed: %w", err)
+	}
 
-		if contractFn != nil {
-			contractFn(pool)
-		}
-	})
+	zap.L().Info("Database connection established")
+	db = pool
+
+	if contractFn != nil {
+		contractFn(pool)
+	}
+
+	return nil
 }
 
+// SetDatabaseContract registers the database consumer contract callback.
 func SetDatabaseContract(fn func(*pgxpool.Pool)) {
 	contractOnce.Do(func() {
 		contractFn = fn
 	})
 }
 
+// CloseDB closes the active PostgreSQL connection pool safely.
 func CloseDB() {
+	dbMu.Lock()
+	defer dbMu.Unlock()
+
 	if db != nil {
 		db.Close()
+		db = nil
 		zap.L().Info("Database connection pool closed")
 	}
 }

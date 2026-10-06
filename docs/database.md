@@ -8,8 +8,9 @@ The database connection is managed centrally in `cores/database.go` using **pgxp
 
 ## Environment Requirement
 
-Make sure these variables exist in your .env file:
-```
+Copy `.env.example` to `.env` and configure the database environment variables:
+
+```env
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
@@ -17,6 +18,10 @@ DB_PASSWORD=your_password
 DB_NAME=your_database
 DB_SSLMODE=disable
 DB_ENABLE=true
+DB_MAX_CONNS=10
+DB_MIN_CONNS=2
+DB_MAX_CONN_LIFETIME=1h
+DB_MAX_CONN_IDLE_TIME=30m
 ```
 ## Accessing the Database
 
@@ -30,16 +35,22 @@ The contract is located in `app/repository/contract/registry.go`. It provides a 
 ### Lifecycle & Registration
 
 The database initialization follows this flow:
-- **Registration**: In `bootstrap/db.go`, we register how the database pool should be "contracted" to the repository layer.
+- **Registration**: In `bootstrap/hook.go`, database contracts and connections are registered inside the application startup lifecycle hook (`core.RegisterBeforeStart`).
 
-> **Note**: By default, the database contract registration in `bootstrap/db.go` is commented out. This is because the boilerplate doesn't come with pre-generated SQLC code. Once you have generated your repository code, you should uncomment it:
+> **Note**: By default, the database contract registration in `bootstrap/hook.go` is commented out. This is because the boilerplate doesn't come with pre-generated SQLC code. Once you have generated your repository code, you should uncomment it:
 > ```go
-> // bootstrap/db.go
-> func RegisterDatabaseContract() {
->     cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
->         contract.DatabaseContract(pool) // Uncomment this
->     })
-> }
+> // bootstrap/hook.go
+> core.RegisterBeforeStart(func() error {
+>     if cores.Config().Database.Enable {
+>         cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
+>             // contract.DatabaseContract(pool) // Uncomment this
+>         })
+>         if err := cores.ConnectDB(); err != nil {
+>             return fmt.Errorf("failed to connect to database: %w", err)
+>         }
+>     }
+>     return nil
+> })
 > ```
 
 ## Database Queries (SQLC)

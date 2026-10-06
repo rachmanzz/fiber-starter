@@ -14,7 +14,9 @@ var Logger *zap.Logger
 func NewLogger() {
 	logDir := filepath.Dir(Config().Log.Path)
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		_ = os.MkdirAll(logDir, 0755)
+		if err := os.MkdirAll(logDir, 0755); err != nil {
+			os.Stderr.WriteString("Logger initialization warning: failed to create log directory: " + err.Error() + "\n")
+		}
 	}
 
 	lumberJackLogger := &lumberjack.Logger{

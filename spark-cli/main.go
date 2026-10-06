@@ -82,15 +82,25 @@ var initCmd = &cobra.Command{
 		}
 
 		fmt.Println("Running go mod edit...")
-		exec.Command("go", "mod", "edit", "-module", modName).Run()
+		if err := exec.Command("go", "mod", "edit", "-module", modName).Run(); err != nil {
+			fmt.Printf("Error running go mod edit: %v\n", err)
+			return
+		}
+
 		fmt.Println("Running go mod tidy...")
-		exec.Command("go", "mod", "tidy").Run()
+		if err := exec.Command("go", "mod", "tidy").Run(); err != nil {
+			fmt.Printf("Error running go mod tidy: %v\n", err)
+			return
+		}
 
 		fmt.Printf("Successfully initialized project with module: %s\n", modName)
 	},
 }
 
-var migrateTo string
+var (
+	migrateTo        string
+	migrationDirFlag string
+)
 
 var migrateCmd = &cobra.Command{
 	Use:   "migrate",
@@ -128,17 +138,29 @@ var migrateNewCmd = &cobra.Command{
 	},
 }
 
+func getMigrationDir() string {
+	if migrationDirFlag != "" {
+		return migrationDirFlag
+	}
+	dir := os.Getenv("MIGRATION_DIR")
+	if dir == "" {
+		return "migrations"
+	}
+	return dir
+}
+
 func prepareGooseEnvironment() {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: .env file not found, using system environment variables")
 	}
 	ensureGooseInstalled()
 
+	migrationDir := getMigrationDir()
 	// Ensure migrations directory exists
-	if _, err := os.Stat("migrations"); os.IsNotExist(err) {
-		fmt.Println("Creating migrations directory...")
-		if err := os.Mkdir("migrations", 0755); err != nil {
-			fmt.Printf("Failed to create migrations directory: %v\n", err)
+	if _, err := os.Stat(migrationDir); os.IsNotExist(err) {
+		fmt.Printf("Creating %s directory...\n", migrationDir)
+		if err := os.MkdirAll(migrationDir, 0755); err != nil {
+			fmt.Printf("Failed to create %s directory: %v\n", migrationDir, err)
 			os.Exit(1)
 		}
 	}
@@ -161,15 +183,33 @@ func buildDSN() string {
 }
 
 func executeGoose(args []string) {
-	gooseArgs := append([]string{"-dir", "migrations", "postgres", buildDSN()}, args...)
-	display := "goose -dir migrations postgres <dsn> " + strings.Join(args, " ")
-	runGoose(gooseArgs, display)
+	migrationDir := getMigrationDir()
+	gooseArgs := append([]string{"-dir", migrationDir}, args...)
+	display := fmt.Sprintf("goose -dir %s %s", migrationDir, strings.Join(args, " "))
+	runGooseWithDB(gooseArgs, display, buildDSN())
 }
 
 func executeGooseNoDB(args []string) {
-	gooseArgs := append([]string{"-dir", "migrations"}, args...)
-	display := "goose -dir migrations " + strings.Join(args, " ")
+	migrationDir := getMigrationDir()
+	gooseArgs := append([]string{"-dir", migrationDir}, args...)
+	display := fmt.Sprintf("goose -dir %s %s", migrationDir, strings.Join(args, " "))
 	runGoose(gooseArgs, display)
+}
+
+func runGooseWithDB(args []string, display string, dsn string) {
+	fmt.Printf("Running: %s\n", display)
+	runCmd := exec.Command("goose", args...)
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
+	env := append(os.Environ(),
+		"GOOSE_DRIVER=postgres",
+		"GOOSE_DBSTRING="+dsn,
+	)
+	runCmd.Env = env
+	if err := runCmd.Run(); err != nil {
+		fmt.Printf("Goose command failed: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func runGoose(args []string, display string) {
@@ -243,6 +283,7 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(devCmd)
 
+	migrateCmd.PersistentFlags().StringVarP(&migrationDirFlag, "dir", "d", "", "migration directory (overrides MIGRATION_DIR and default)")
 	migrateCmd.Flags().StringVarP(&migrateTo, "to", "t", "", "destination migration version")
 	migrateCmd.AddCommand(migrateDownCmd)
 	migrateCmd.AddCommand(migrateNewCmd)

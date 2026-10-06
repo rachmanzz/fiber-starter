@@ -1,8 +1,6 @@
 package bootstrap
 
 import (
-	"context"
-
 	"github.com/rachmanzz/fiber-starter/app/routes"
 	"github.com/rachmanzz/fiber-starter/cores"
 	"go.uber.org/zap"
@@ -14,25 +12,19 @@ type Application struct {
 
 func NewApplication() *Application {
 	core := cores.CreateContract().Initialize()
-	RegisterHook(core)
-	RegisterDatabaseContract()
-
-	if cores.Config().Database.Enable {
-		cores.ConnectDB()
-	}
 	return &Application{
 		contract: core,
 	}
 }
 
 func (app *Application) Bootstrap() *Application {
-	ctx := context.Background()
-	core := app.contract.CreateApp(ctx)
-	RegisterMiddleware(core.App)
-	core.RegisterRoute(func(c *cores.AppContracts) error {
-		routes.ApiRoute(c.App)
-		return nil
-	})
+	app.contract.
+		CreateApp().
+		RegisterHook(RegisterHook).
+		RegisterMiddleware(RegisterMiddleware).
+		RegisterRoute(
+			routes.ApiRoute,
+		)
 
 	return app
 }
@@ -44,3 +36,4 @@ func (app *Application) Run() {
 		zap.L().Fatal("Server failed to start", zap.Error(err))
 	}
 }
+
