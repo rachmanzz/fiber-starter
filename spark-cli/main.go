@@ -97,7 +97,10 @@ var initCmd = &cobra.Command{
 	},
 }
 
-var migrateTo string
+var (
+	migrateTo        string
+	migrationDirFlag string
+)
 
 var migrateCmd = &cobra.Command{
 	Use:   "migrate",
@@ -135,17 +138,29 @@ var migrateNewCmd = &cobra.Command{
 	},
 }
 
+func getMigrationDir() string {
+	if migrationDirFlag != "" {
+		return migrationDirFlag
+	}
+	dir := os.Getenv("MIGRATION_DIR")
+	if dir == "" {
+		return "migrations"
+	}
+	return dir
+}
+
 func prepareGooseEnvironment() {
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("Warning: .env file not found, using system environment variables")
 	}
 	ensureGooseInstalled()
 
+	migrationDir := getMigrationDir()
 	// Ensure migrations directory exists
-	if _, err := os.Stat("migrations"); os.IsNotExist(err) {
-		fmt.Println("Creating migrations directory...")
-		if err := os.Mkdir("migrations", 0755); err != nil {
-			fmt.Printf("Failed to create migrations directory: %v\n", err)
+	if _, err := os.Stat(migrationDir); os.IsNotExist(err) {
+		fmt.Printf("Creating %s directory...\n", migrationDir)
+		if err := os.MkdirAll(migrationDir, 0755); err != nil {
+			fmt.Printf("Failed to create %s directory: %v\n", migrationDir, err)
 			os.Exit(1)
 		}
 	}
@@ -168,14 +183,16 @@ func buildDSN() string {
 }
 
 func executeGoose(args []string) {
-	gooseArgs := append([]string{"-dir", "migrations"}, args...)
-	display := "goose -dir migrations " + strings.Join(args, " ")
+	migrationDir := getMigrationDir()
+	gooseArgs := append([]string{"-dir", migrationDir}, args...)
+	display := fmt.Sprintf("goose -dir %s %s", migrationDir, strings.Join(args, " "))
 	runGooseWithDB(gooseArgs, display, buildDSN())
 }
 
 func executeGooseNoDB(args []string) {
-	gooseArgs := append([]string{"-dir", "migrations"}, args...)
-	display := "goose -dir migrations " + strings.Join(args, " ")
+	migrationDir := getMigrationDir()
+	gooseArgs := append([]string{"-dir", migrationDir}, args...)
+	display := fmt.Sprintf("goose -dir %s %s", migrationDir, strings.Join(args, " "))
 	runGoose(gooseArgs, display)
 }
 
@@ -266,6 +283,7 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(devCmd)
 
+	migrateCmd.PersistentFlags().StringVarP(&migrationDirFlag, "dir", "d", "", "migration directory (overrides MIGRATION_DIR and default)")
 	migrateCmd.Flags().StringVarP(&migrateTo, "to", "t", "", "destination migration version")
 	migrateCmd.AddCommand(migrateDownCmd)
 	migrateCmd.AddCommand(migrateNewCmd)
