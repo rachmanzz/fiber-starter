@@ -12,24 +12,19 @@ type Application struct {
 
 func NewApplication() *Application {
 	core := cores.CreateContract().Initialize()
-	RegisterDatabaseContract()
-
-	if cores.Config().Database.Enable {
-		cores.ConnectDB()
-	}
 	return &Application{
 		contract: core,
 	}
 }
 
 func (app *Application) Bootstrap() *Application {
-	core := app.contract.CreateApp()
-	RegisterHook(core)
-	RegisterMiddleware(core.App)
-	core.RegisterRoute(func(c *cores.AppContracts) error {
-		routes.ApiRoute(c.App)
-		return nil
-	})
+	app.contract.
+		CreateApp().
+		RegisterHook(RegisterHook).
+		RegisterMiddleware(RegisterMiddleware).
+		RegisterRoute(
+			routes.ApiRoute,
+		)
 
 	return app
 }

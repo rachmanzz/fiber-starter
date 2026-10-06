@@ -8,7 +8,9 @@ import (
 	"go.uber.org/zap"
 )
 
-type RouteFunc func(app *AppContracts) error
+type HookFunc func(core *AppContracts)
+type MiddlewareFunc func(app *fiber.App)
+type RouteFunc func(app *fiber.App)
 type PreStartHook func() error
 
 type AppContracts struct {
@@ -22,8 +24,9 @@ func CreateContract() *AppContracts {
 	return &AppContracts{}
 }
 
-func (app *AppContracts) RegisterErrorMapper(mapper ...ErrorMapperFn) {
+func (app *AppContracts) RegisterErrorMapper(mapper ...ErrorMapperFn) *AppContracts {
 	app.errorMappers = append(app.errorMappers, mapper...)
+	return app
 }
 
 func (app *AppContracts) Initialize() *AppContracts {
@@ -55,12 +58,26 @@ func (app *AppContracts) CreateApp(config ...fiber.Config) *AppContracts {
 	return app
 }
 
-func (app *AppContracts) RegisterBeforeStart(hook PreStartHook) {
+func (app *AppContracts) RegisterBeforeStart(hook PreStartHook) *AppContracts {
 	app.beforeStartHooks = append(app.beforeStartHooks, hook)
+	return app
 }
 
-func (app *AppContracts) RegisterRoute(route RouteFunc) {
-	route(app)
+func (app *AppContracts) RegisterHook(hook HookFunc) *AppContracts {
+	hook(app)
+	return app
+}
+
+func (app *AppContracts) RegisterMiddleware(mw MiddlewareFunc) *AppContracts {
+	mw(app.App)
+	return app
+}
+
+func (app *AppContracts) RegisterRoute(routes ...RouteFunc) *AppContracts {
+	for _, route := range routes {
+		route(app.App)
+	}
+	return app
 }
 
 func (app *AppContracts) Start() error {

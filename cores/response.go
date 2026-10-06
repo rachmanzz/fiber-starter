@@ -59,6 +59,13 @@ func RespUnauthorized(c fiber.Ctx, message string) error {
 	})
 }
 
+func RespForbidden(c fiber.Ctx, message string) error {
+	return sendResponse(c, fiber.StatusForbidden, BaseResponse{
+		Success: false,
+		Message: message,
+	})
+}
+
 func RespNotFound(c fiber.Ctx, message string) error {
 	return sendResponse(c, fiber.StatusNotFound, BaseResponse{
 		Success: false,

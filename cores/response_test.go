@@ -117,6 +117,25 @@ func TestRespUnauthorized(t *testing.T) {
 	}
 }
 
+func TestRespForbidden(t *testing.T) {
+	app := newTestApp(func(c fiber.Ctx) error {
+		return cores.RespForbidden(c, "access denied")
+	})
+
+	resp, err := doTest(t, app, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.StatusCode != fiber.StatusForbidden {
+		t.Fatalf("expected status %d, got %d", fiber.StatusForbidden, resp.StatusCode)
+	}
+
+	res := decodeJSON(t, resp.Body)
+	if res.Success || res.Message != "access denied" {
+		t.Fatalf("unexpected payload: %+v", res)
+	}
+}
+
 func TestRespNotFound(t *testing.T) {
 	app := newTestApp(func(c fiber.Ctx) error {
 		return cores.RespNotFound(c, "not found")

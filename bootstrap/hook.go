@@ -1,6 +1,10 @@
 package bootstrap
 
 import (
+	"fmt"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	//"github.com/rachmanzz/fiber-starter/app/repository/contract"
 	"github.com/rachmanzz/fiber-starter/cores"
 	"go.uber.org/zap"
 )
@@ -11,6 +15,16 @@ func RegisterHook(core *cores.AppContracts) {
 	}
 
 	core.RegisterBeforeStart(func() error {
+		// Database connection & contract registration
+		if cores.Config().Database.Enable {
+			cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
+				// contract.DatabaseContract(pool)
+			})
+			if err := cores.ConnectDB(); err != nil {
+				return fmt.Errorf("failed to connect to database: %w", err)
+			}
+		}
+
 		return nil
 	})
 

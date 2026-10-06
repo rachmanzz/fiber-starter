@@ -35,16 +35,22 @@ The contract is located in `app/repository/contract/registry.go`. It provides a 
 ### Lifecycle & Registration
 
 The database initialization follows this flow:
-- **Registration**: In `bootstrap/db.go`, we register how the database pool should be "contracted" to the repository layer.
+- **Registration**: In `bootstrap/hook.go`, database contracts and connections are registered inside the application startup lifecycle hook (`core.RegisterBeforeStart`).
 
-> **Note**: By default, the database contract registration in `bootstrap/db.go` is commented out. This is because the boilerplate doesn't come with pre-generated SQLC code. Once you have generated your repository code, you should uncomment it:
+> **Note**: By default, the database contract registration in `bootstrap/hook.go` is commented out. This is because the boilerplate doesn't come with pre-generated SQLC code. Once you have generated your repository code, you should uncomment it:
 > ```go
-> // bootstrap/db.go
-> func RegisterDatabaseContract() {
->     cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
->         contract.DatabaseContract(pool) // Uncomment this
->     })
-> }
+> // bootstrap/hook.go
+> core.RegisterBeforeStart(func() error {
+>     if cores.Config().Database.Enable {
+>         cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
+>             // contract.DatabaseContract(pool) // Uncomment this
+>         })
+>         if err := cores.ConnectDB(); err != nil {
+>             return fmt.Errorf("failed to connect to database: %w", err)
+>         }
+>     }
+>     return nil
+> })
 > ```
 
 ## Database Queries (SQLC)

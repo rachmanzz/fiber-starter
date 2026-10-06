@@ -15,9 +15,10 @@ import (
 // CreateApp -> RegisterMiddleware -> routes.
 func newTestApp(t *testing.T) *fiber.App {
 	t.Helper()
-	core := cores.CreateContract().CreateApp()
-	bootstrap.RegisterMiddleware(core.App)
-	routes.ApiRoute(core.App)
+	core := cores.CreateContract().
+		CreateApp().
+		RegisterMiddleware(bootstrap.RegisterMiddleware).
+		RegisterRoute(routes.ApiRoute)
 	return core.App
 }
 
