@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/shamaton/msgpack/v3"
 	"go.uber.org/zap"
 )
 
@@ -43,6 +44,8 @@ func (app *AppContracts) CreateApp(config ...fiber.Config) *AppContracts {
 			ReadTimeout:     10 * time.Second,
 			WriteTimeout:    10 * time.Second,
 			IdleTimeout:     120 * time.Second,
+			MsgPackEncoder:  msgpack.Marshal,
+			MsgPackDecoder:  SafeUnmarshal,
 		}
 		if len(config) > 0 {
 			cfg = config[0]
@@ -52,8 +55,15 @@ func (app *AppContracts) CreateApp(config ...fiber.Config) *AppContracts {
 			if cfg.ErrorHandler == nil {
 				cfg.ErrorHandler = app.GlobalErrorHandler
 			}
+			if cfg.MsgPackEncoder == nil {
+				cfg.MsgPackEncoder = msgpack.Marshal
+			}
+			if cfg.MsgPackDecoder == nil {
+				cfg.MsgPackDecoder = SafeUnmarshal
+			}
 		}
 		app.App = fiber.New(cfg)
+		app.App.RegisterCustomBinder(NewMsgPackBinder())
 	})
 	return app
 }

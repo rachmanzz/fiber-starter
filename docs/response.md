@@ -1,14 +1,53 @@
-# Standard API Response & Content Negotiation
+# Dual-Format Support: JSON & MessagePack
 
-`fiber-starter` provides standardized API response helpers in [`cores/response.go`](../cores/response.go) with built-in **HTTP Content Negotiation** for **JSON** and **MessagePack**.
+`fiber-starter` provides end-to-end support for both **JSON** and **MessagePack** across the entire request/response lifecycle:
+- **Input (Request Body Parsing)** via `c.Bind().Body(&req)` or `c.Bind().MsgPack(&req)`.
+- **Output (Response Serialization)** via [`cores/response.go`](../cores/response.go) with automatic HTTP Content Negotiation.
 
 ---
 
 ## 🎯 Features
 
-- **Standardized Response Schema**: Unified envelope containing `success`, `message`, `data`, and `error` fields.
-- **Native Content Negotiation**: Automatically serves **JSON** or **MessagePack** based on the client's `Accept` header using Fiber v3's `c.Accepts("application/json", "application/x-msgpack")`.
-- **Quality Factor (`q`) Support**: Honors weighted client headers (e.g. `Accept: application/json;q=0.5, application/x-msgpack;q=0.9`).
+- **Standardized Response Envelope**: Unified schema (`success`, `message`, `data`, and `error`) with `json` and `msgpack` struct tags.
+- **Bi-Directional MessagePack Support**: Parse incoming MessagePack request bodies and respond with MessagePack seamlessly.
+- **Supported MIME Types**:
+  - `application/x-msgpack` (common de-facto standard)
+  - `application/msgpack`
+  - `application/vnd.msgpack` (Fiber v3 standard)
+- **Automatic Content Negotiation**: Honors the client's `Accept` header and quality factors (`q`, e.g. `Accept: application/json;q=0.5, application/x-msgpack;q=0.9`).
+- **Validation Integration**: `StructValidator` (`go-playground/validator`) executes automatically on decoded MessagePack payloads.
+
+---
+
+## 📥 Inbound Request Body Binding (Input)
+
+Fiber v3 parses incoming request bodies based on the request's `Content-Type` header. `MsgPackBinder` is registered out-of-the-box in `cores.CreateApp()`.
+
+### Handler Usage
+In your handler, simply call `c.Bind().Body(&req)`:
+
+```go
+type CreateUserRequest struct {
+	Name  string `json:"name"  msgpack:"name"  validate:"required"`
+	Email string `json:"email" msgpack:"email" validate:"required,email"`
+}
+
+func (h *UserHandler) CreateUser(c fiber.Ctx) error {
+	var req CreateUserRequest
+	if err := c.Bind().Body(&req); err != nil {
+		return err // GlobalErrorHandler converts this to 400 Bad Request
+	}
+
+	return cores.RespCreated(c, "User created", req)
+}
+```
+
+If the client sends:
+- `Content-Type: application/json` ➡️ Fiber decodes JSON.
+- `Content-Type: application/x-msgpack` (or `application/msgpack` / `application/vnd.msgpack`) ➡️ `MsgPackBinder` decodes MessagePack.
+- Struct validation is automatically triggered for both formats.
+
+You can also explicitly bind MessagePack using `c.Bind().MsgPack(&req)`.
 
 ---
 
@@ -37,6 +76,7 @@ Use these helper functions inside your handlers:
 | `cores.RespCreated(c, msg, data)` | `201 Created` | Resource creation response |
 | `cores.RespBadReq(c, msg, err)` | `400 Bad Request` | Bad request or validation failure |
 | `cores.RespUnauthorized(c, msg)` | `401 Unauthorized` | Authentication error |
+| `cores.RespForbidden(c, msg)` | `403 Forbidden` | Authorization error |
 | `cores.RespNotFound(c, msg)` | `404 Not Found` | Resource not found |
 | `cores.RespInternalError(c, msg, err)`| `500 Internal Server Error` | Internal error (logs error via Zap, hides stack trace from client) |
 
@@ -48,14 +88,14 @@ Content negotiation is handled automatically by `sendResponse`:
 
 ```go
 func sendResponse(c fiber.Ctx, status int, payload BaseResponse) error {
-	match := c.Accepts("application/json", "application/x-msgpack")
-	if match == "application/x-msgpack" {
+	match := c.Accepts("application/json", "application/x-msgpack", "application/msgpack", "application/vnd.msgpack")
+	if match != "" && match != "application/json" {
 		b, err := msgpack.Marshal(payload)
 		if err != nil {
 			zap.L().Error("failed to marshal msgpack", zap.Error(err))
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 		}
-		c.Set("Content-Type", "application/x-msgpack")
+		c.Set("Content-Type", match)
 		return c.Status(status).Send(b)
 	}
 
@@ -63,26 +103,34 @@ func sendResponse(c fiber.Ctx, status int, payload BaseResponse) error {
 }
 ```
 
-### Example Requests & Responses
+---
 
-1. **Default JSON Request**:
-   ```http
-   GET /users HTTP/1.1
-   Accept: application/json
-   ```
-   **Response (`Content-Type: application/json`):**
-   ```json
-   {
-     "success": true,
-     "message": "User fetched successfully",
-     "data": { "id": 1, "name": "John Doe" }
-   }
-   ```
+## 💡 Example Requests & Responses
 
-2. **MessagePack Request**:
-   ```http
-   GET /users HTTP/1.1
-   Accept: application/x-msgpack
-   ```
-   **Response (`Content-Type: application/x-msgpack`):**
-   Binary MessagePack payload encoding `BaseResponse`.
+### 1. Default JSON Request
+```http
+POST /users HTTP/1.1
+Content-Type: application/json
+Accept: application/json
+
+{"name": "John Doe", "email": "john@example.com"}
+```
+**Response (`Content-Type: application/json`):**
+```json
+{
+  "success": true,
+  "message": "User created",
+  "data": { "name": "John Doe", "email": "john@example.com" }
+}
+```
+
+### 2. MessagePack Request & Response (Full Binary Roundtrip)
+```http
+POST /users HTTP/1.1
+Content-Type: application/x-msgpack
+Accept: application/x-msgpack
+
+<Binary MessagePack Payload>
+```
+**Response (`Content-Type: application/x-msgpack`):**
+Binary MessagePack payload encoding `BaseResponse`.

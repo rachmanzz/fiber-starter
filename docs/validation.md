@@ -16,15 +16,15 @@
 
 ### 1. Define Request Struct with Validation Tags
 
-Use standard `json` and `validate` struct tags:
+Use standard `json`, `msgpack`, and `validate` struct tags to support dual-format payloads:
 
 ```go
 package dto
 
 type CreateUserRequest struct {
-	Name     string `json:"name" validate:"required,min=3"`
-	Email    string `json:"email" validate:"required,email"`
-	Age      int    `json:"age" validate:"gte=18"`
+	Name     string `json:"name"  msgpack:"name"  validate:"required,min=3"`
+	Email    string `json:"email" msgpack:"email" validate:"required,email"`
+	Age      int    `json:"age"   msgpack:"age"   validate:"gte=18"`
 }
 ```
 

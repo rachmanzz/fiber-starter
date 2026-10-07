@@ -13,9 +13,11 @@ flowchart TD
     Step1 -- Handled = true --> RespCustom[Return Custom Error Response]
     Step1 -- Handled = false --> Step2{2. Struct Validation Error?}
     Step2 -- Yes --> RespVal[Return 400 Bad Request & Field Errors]
-    Step2 -- No --> Step3{3. Fiber HTTP Error?}
-    Step3 -- Yes --> RespFiber[Return Fiber HTTP Status & Message]
-    Step3 -- No --> Step4[4. Fallback: 500 Internal Server Error]
+    Step2 -- No --> Step3{3. Fiber Bind Error?}
+    Step3 -- Yes --> RespBind[Return 400 Bad Request & Parse Error]
+    Step3 -- No --> Step4{4. Fiber HTTP Error?}
+    Step4 -- Yes --> RespFiber[Return Fiber HTTP Status & Message]
+    Step4 -- No --> Step5[5. Fallback: 500 Internal Server Error]
 ```
 
 ---
@@ -109,6 +111,7 @@ If an error is not intercepted by any custom error mappers, `cores.GlobalErrorHa
 | Error Type | HTTP Status Code | Default Response Structure |
 | :--- | :--- | :--- |
 | **`validator.ValidationErrors`** | `400 Bad Request` | `{"success": false, "message": "Validation failed", "error": {"Field": "tag"}}` |
+| **`*fiber.BindError`** (JSON / MsgPack parse error) | `400 Bad Request` | `{"success": false, "message": "Invalid request payload", "error": "<details>"}` |
 | **`*fiber.Error`** (e.g. 404, 405) | Error Status Code | `{"success": false, "message": "<Fiber Message>"}` |
 | **Unhandled Error** | `500 Internal Server Error` | `{"success": false, "message": "Internal Server Error"}` (logged via Zap) |
 

@@ -39,7 +39,13 @@ func (app *AppContracts) GlobalErrorHandler(c fiber.Ctx, err error) error {
 		return RespBadReq(c, "Validation failed", errMap)
 	}
 
-	// 3. Handle Fiber v3 native HTTP errors (e.g. 404, 400, 405)
+	// 3. Handle Fiber v3 Bind errors (e.g. invalid JSON or MsgPack payload)
+	var bindErr *fiber.BindError
+	if errors.As(err, &bindErr) {
+		return RespBadReq(c, "Invalid request payload", bindErr.Error())
+	}
+
+	// 4. Handle Fiber v3 native HTTP errors (e.g. 404, 400, 405)
 	var fiberErr *fiber.Error
 	if errors.As(err, &fiberErr) {
 		return sendResponse(c, fiberErr.Code, BaseResponse{
