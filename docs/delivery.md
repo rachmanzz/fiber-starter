@@ -78,6 +78,17 @@ In this example:
 - Methods like `GetUserByID` and `CreateUser` are responsible for handling specific HTTP routes.
 - They parse request parameters/body, call the relevant service method, and format the response using `cores` helper functions.
 
+## 🚀 Fiber v3 Modern Binding Capabilities
+
+`fiber-starter` leverages Fiber v3's unified binding engine:
+
+| Binding Method | Sources Supported | Use Case |
+| :--- | :--- | :--- |
+| `c.Bind().Body(&req)` | `application/json`, `application/x-msgpack`, `application/msgpack`, `application/vnd.msgpack` | Standard POST/PUT/PATCH request payloads with struct validation |
+| `c.Bind().URI(&req)` | Route path params (`/users/:id`) | Typed path parameter binding using `params:"..."` tags |
+| `c.Bind().Query(&req)` | Query strings (`?page=1&limit=10`) | Query parameter binding using `query:"..."` tags |
+| `c.Bind().All(&req)` | URI -> Body -> Query -> Headers -> Cookies | Unified binding into a single composite struct with standard precedence |
+
 ## Flexibility in Structure
 
 This documentation outlines a recommended and common practice for structuring delivery handlers within this boilerplate. However, this structure is not absolute. Developers are encouraged to adapt and evolve their handler architecture based on their project's specific needs, team conventions, and industry best practices, as long as it maintains clarity, testability, and maintainability.
