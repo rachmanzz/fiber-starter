@@ -54,9 +54,9 @@ func (h *UserHandler) GetUserByID(c fiber.Ctx) error {
 
 // CreateUser handles POST requests to /users
 func (h *UserHandler) CreateUser(c fiber.Ctx) error {
-	var req struct { // Define request body structure
-		Name  string `json:"name" validate:"required"`
-		Email string `json:"email" validate:"required,email"`
+	var req struct { // Define request body structure (supports JSON & MessagePack)
+		Name  string `json:"name"  msgpack:"name"  validate:"required"`
+		Email string `json:"email" msgpack:"email" validate:"required,email"`
 	}
 
 	if err := c.Bind().Body(&req); err != nil {

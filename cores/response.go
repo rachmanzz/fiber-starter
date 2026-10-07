@@ -14,14 +14,14 @@ type BaseResponse struct {
 }
 
 func sendResponse(c fiber.Ctx, status int, payload BaseResponse) error {
-	match := c.Accepts("application/json", "application/x-msgpack")
-	if match == "application/x-msgpack" {
+	match := c.Accepts("application/json", "application/x-msgpack", "application/msgpack", "application/vnd.msgpack")
+	if match != "" && match != "application/json" {
 		b, err := msgpack.Marshal(payload)
 		if err != nil {
 			zap.L().Error("failed to marshal msgpack", zap.Error(err))
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 		}
-		c.Set("Content-Type", "application/x-msgpack")
+		c.Set("Content-Type", match)
 		return c.Status(status).Send(b)
 	}
 

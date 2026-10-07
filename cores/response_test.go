@@ -180,23 +180,33 @@ func TestMsgPackResponse(t *testing.T) {
 		return cores.RespSuccess(c, "msgpack", fiber.Map{"id": 1})
 	})
 
-	resp, err := doTest(t, app, "application/x-msgpack")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.StatusCode != fiber.StatusOK {
-		t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
-	}
-	if got := resp.Header.Get("Content-Type"); got != "application/x-msgpack" {
-		t.Fatalf("expected msgpack content type, got %q", got)
+	mimes := []string{
+		"application/x-msgpack",
+		"application/msgpack",
+		"application/vnd.msgpack",
 	}
 
-	var res cores.BaseResponse
-	if err := msgpack.Unmarshal(readAll(t, resp.Body), &res); err != nil {
-		t.Fatalf("failed to decode msgpack response: %v", err)
-	}
-	if !res.Success || res.Message != "msgpack" {
-		t.Fatalf("unexpected payload: %+v", res)
+	for _, mime := range mimes {
+		t.Run("Accept_"+mime, func(t *testing.T) {
+			resp, err := doTest(t, app, mime)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if resp.StatusCode != fiber.StatusOK {
+				t.Fatalf("expected status %d, got %d", fiber.StatusOK, resp.StatusCode)
+			}
+			if got := resp.Header.Get("Content-Type"); got != mime {
+				t.Fatalf("expected content type %q, got %q", mime, got)
+			}
+
+			var res cores.BaseResponse
+			if err := msgpack.Unmarshal(readAll(t, resp.Body), &res); err != nil {
+				t.Fatalf("failed to decode msgpack response: %v", err)
+			}
+			if !res.Success || res.Message != "msgpack" {
+				t.Fatalf("unexpected payload: %+v", res)
+			}
+		})
 	}
 }
 
