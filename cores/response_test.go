@@ -14,9 +14,9 @@ import (
 )
 
 func newTestApp(handler func(c fiber.Ctx) error) *fiber.App {
-	app := fiber.New()
-	app.Get("/", handler)
-	return app
+	contract := cores.CreateContract().CreateApp()
+	contract.App.Get("/", handler)
+	return contract.App
 }
 
 func doTest(t *testing.T, app *fiber.App, accept string) (*http.Response, error) {

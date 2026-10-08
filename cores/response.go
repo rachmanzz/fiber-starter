@@ -2,7 +2,6 @@ package cores
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/shamaton/msgpack/v3"
 	"go.uber.org/zap"
 )
 
@@ -14,15 +13,15 @@ type BaseResponse struct {
 }
 
 func sendResponse(c fiber.Ctx, status int, payload BaseResponse) error {
+	c.Vary(fiber.HeaderAccept)
+
 	match := c.Accepts("application/json", "application/x-msgpack", "application/msgpack", "application/vnd.msgpack")
 	if match != "" && match != "application/json" {
-		b, err := msgpack.Marshal(payload)
-		if err != nil {
-			zap.L().Error("failed to marshal msgpack", zap.Error(err))
+		if err := c.Status(status).MsgPack(payload, match); err != nil {
+			zap.L().Error("failed to encode msgpack response", zap.Error(err))
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 		}
-		c.Set("Content-Type", match)
-		return c.Status(status).Send(b)
+		return nil
 	}
 
 	return c.Status(status).JSON(payload)
