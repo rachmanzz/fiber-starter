@@ -72,6 +72,14 @@ func RespNotFound(c fiber.Ctx, message string) error {
 	})
 }
 
+func RespConflict(c fiber.Ctx, message string, err any) error {
+	return sendResponse(c, fiber.StatusConflict, BaseResponse{
+		Success: false,
+		Message: message,
+		Error:   err,
+	})
+}
+
 func RespInternalError(c fiber.Ctx, message string, err error) error {
 	zap.L().Error(message, zap.Error(err))
 	return sendResponse(c, fiber.StatusInternalServerError, BaseResponse{

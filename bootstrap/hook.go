@@ -17,8 +17,8 @@ func RegisterHook(core *cores.AppContracts) {
 	core.RegisterBeforeStart(func() error {
 		// Database connection & contract registration
 		if cores.Config().Database.Enable {
-			cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
-				// contract.DatabaseContract(pool)
+			cores.SetNamedDatabaseContract(func(name string, pool *pgxpool.Pool) {
+				// contract.RegisterNamedDatabase(name, pool)
 			})
 			if err := cores.ConnectDB(); err != nil {
 				return fmt.Errorf("failed to connect to database: %w", err)
