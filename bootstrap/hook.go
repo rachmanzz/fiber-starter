@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	//"github.com/rachmanzz/fiber-starter/app/repository/contract"
+	//"github.com/rachmanzz/fiber-starter/providers/repocontract"
 	"github.com/rachmanzz/fiber-starter/cores"
 	"go.uber.org/zap"
 )
@@ -18,7 +18,7 @@ func RegisterHook(core *cores.AppContracts) {
 		// Database connection & contract registration
 		if cores.Config().Database.Enable {
 			cores.SetNamedDatabaseContract(func(name string, pool *pgxpool.Pool) {
-				// contract.RegisterNamedDatabase(name, pool)
+				// repocontract.RegisterNamedDatabase(name, pool)
 			})
 			if err := cores.ConnectDB(); err != nil {
 				return fmt.Errorf("failed to connect to database: %w", err)

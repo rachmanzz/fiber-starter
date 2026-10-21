@@ -1,4 +1,5 @@
-package contract
+// Package repocontract provides a centralized repository query and connection pool registry for database access.
+package repocontract
 
 import (
 	"fmt"

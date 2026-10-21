@@ -84,8 +84,7 @@ func TestMsgPackInput_SupportedMIMETypes(t *testing.T) {
 				t.Fatalf("expected status 200, got %d", resp.StatusCode)
 			}
 
-			var res cores.BaseResponse
-			res = decodeJSON(t, resp.Body)
+			res := decodeJSON(t, resp.Body)
 			if !res.Success || res.Message != "created" {
 				t.Fatalf("unexpected response payload: %+v", res)
 			}

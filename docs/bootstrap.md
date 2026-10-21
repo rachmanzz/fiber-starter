@@ -30,7 +30,7 @@ core.RegisterBeforeStart(func() error {
     // 1. Database Connection & Contract Registration
     if cores.Config().Database.Enable {
         cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
-            // contract.DatabaseContract(pool) // Connects pgx pool to repository queries
+            // repocontract.DatabaseContract(pool) // Connects pgx pool to repository queries
         })
         if err := cores.ConnectDB(); err != nil {
             return fmt.Errorf("failed to connect to database: %w", err)
@@ -51,7 +51,7 @@ core.RegisterBeforeStart(func() error {
         // Named contract callback receives all named pools
         cores.SetNamedDatabaseContract(func(name string, pool *pgxpool.Pool) {
             if name == cores.DefaultDatabaseName {
-                // contract.DatabaseContract(pool)
+                // repocontract.DatabaseContract(pool)
             }
         })
 

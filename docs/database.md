@@ -34,7 +34,7 @@ The `DatabaseConfig` struct in `config/database.go` exposes a helper method `.DS
 
 ## Connection Management (`cores/database.go`)
 
-> **⚠️ Strict Contract Rule**: `cores` does **not** export `GetDB()`. Direct database pool access from handlers or services is strictly prohibited. Database pools must only be accessed through the **Repository Contract** (`contract.GetQueries()`).
+> **⚠️ Strict Contract Rule**: `cores` does **not** export `GetDB()`. Direct database pool access from handlers or services is strictly prohibited. Database pools must only be accessed through the **Repository Contract** (`repocontract.GetQueries()`).
 
 ### 1. Default Connection Pool
 For standard single-database setups:
@@ -65,7 +65,7 @@ Database connections and repository contracts are initialized **before** the ser
 core.RegisterBeforeStart(func() error {
     if cores.Config().Database.Enable {
         cores.SetNamedDatabaseContract(func(name string, pool *pgxpool.Pool) {
-            // contract.RegisterNamedDatabase(name, pool) // Automatically registers default and any named pool
+            // repocontract.RegisterNamedDatabase(name, pool) // Automatically registers default and any named pool
         })
 
         if err := cores.ConnectDB(); err != nil {
@@ -97,17 +97,17 @@ core.App.Hooks().OnPostShutdown(func(err error) error {
 
 ## Accessing the Database via Repository Contract
 
-Handlers and services should never interact with database connection pools directly. Instead, use the registered repository contract located in `app/repository/contract/registry.go`.
+Handlers and services should never interact with database connection pools directly. Instead, use the registered repository contract located in `providers/repocontract/registry.go`.
 
 ### Contract API Reference
 
 | Function | Description |
 | :--- | :--- |
-| `contract.GetQueries()` | Returns the default `*repository.Queries` instance (panics if not initialized). |
-| `contract.Use("pointer_name")` | Retrieves queries for a named database (e.g. `contract.Use("analytics")`). Defaults to `"default"` if omitted. |
-| `contract.GetQueriesNamed(name)` | Retrieves queries for a specific named pointer with an error return. |
-| `contract.Has(name)` | Checks if a named database repository is registered. |
-| `contract.GetPool(name...)` | Returns raw `*pgxpool.Pool` for transactions (`pool.Begin(ctx)`) or third-party drivers. |
+| `repocontract.GetQueries()` | Returns the default `*repository.Queries` instance (panics if not initialized). |
+| `repocontract.Use("pointer_name")` | Retrieves queries for a named database (e.g. `repocontract.Use("analytics")`). Defaults to `"default"` if omitted. |
+| `repocontract.GetQueriesNamed(name)` | Retrieves queries for a specific named pointer with an error return. |
+| `repocontract.Has(name)` | Checks if a named database repository is registered. |
+| `repocontract.GetPool(name...)` | Returns raw `*pgxpool.Pool` for transactions (`pool.Begin(ctx)`) or third-party drivers. |
 
 ### Example Service Usage
 
@@ -115,12 +115,12 @@ Handlers and services should never interact with database connection pools direc
 // app/service/user_service.go
 func (s *UserService) GetUser(ctx context.Context, id int64) (*repository.User, error) {
     // 1. Default database queries
-    return contract.GetQueries().GetUserByID(ctx, id)
+    return repocontract.GetQueries().GetUserByID(ctx, id)
 }
 
 func (s *UserService) LogAuditEvent(ctx context.Context, event repository.CreateEventParams) error {
     // 2. Secondary named database queries (e.g. analytics/events)
-    return contract.Use("events").CreateEvent(ctx, event)
+    return repocontract.Use("events").CreateEvent(ctx, event)
 }
 ```
 
@@ -165,4 +165,4 @@ brew install sqlc
    sqlc generate
    ```
 
-The generated code will populate `app/repository/`. Once generated, uncomment `contract.DatabaseContract(pool)` in `bootstrap/hook.go`.
+The generated code will populate `app/repository/`. Once generated, uncomment `repocontract.DatabaseContract(pool)` in `bootstrap/hook.go`.

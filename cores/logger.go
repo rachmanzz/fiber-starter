@@ -24,8 +24,8 @@ func NewLogger() {
 func initLogger() {
 	logDir := filepath.Dir(Config().Log.Path)
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(logDir, 0755); err != nil {
-			os.Stderr.WriteString("Logger initialization warning: failed to create log directory: " + err.Error() + "\n")
+		if err := os.MkdirAll(logDir, 0750); err != nil {
+			_, _ = os.Stderr.WriteString("Logger initialization warning: failed to create log directory: " + err.Error() + "\n")
 		}
 	}
 
@@ -70,7 +70,7 @@ func initLogger() {
 	})
 
 	fileLevel := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-		return l >= zap.WarnLevel
+		return l >= level
 	})
 
 	consoleCore := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), consoleLevel)
