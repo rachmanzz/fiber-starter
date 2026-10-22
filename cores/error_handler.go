@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
-	"go.uber.org/zap"
 )
 
 // ErrorMapperFn allows users to map custom error types to HTTP response status codes and payloads.
@@ -54,7 +53,6 @@ func (app *AppContracts) GlobalErrorHandler(c fiber.Ctx, err error) error {
 		})
 	}
 
-	// 4. Default fallback: Internal Server Error
-	zap.L().Error("Unhandled server error", zap.Error(err))
-	return RespInternalError(c, "Internal Server Error", err)
+	// 5. Default fallback: Internal Server Error
+	return RespInternalError(c, "Unhandled server error", err)
 }

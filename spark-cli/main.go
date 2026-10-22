@@ -159,7 +159,7 @@ func prepareGooseEnvironment() {
 	// Ensure migrations directory exists
 	if _, err := os.Stat(migrationDir); os.IsNotExist(err) {
 		fmt.Printf("Creating %s directory...\n", migrationDir)
-		if err := os.MkdirAll(migrationDir, 0755); err != nil {
+		if err := os.MkdirAll(migrationDir, 0750); err != nil {
 			fmt.Printf("Failed to create %s directory: %v\n", migrationDir, err)
 			os.Exit(1)
 		}
@@ -172,10 +172,20 @@ func buildDSN() string {
 		sslMode = "disable"
 	}
 
+	host := os.Getenv("DB_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+
+	port := os.Getenv("DB_PORT")
+	if port == "" {
+		port = "5432"
+	}
+
 	u := &url.URL{
 		Scheme:   "postgres",
 		User:     url.UserPassword(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD")),
-		Host:     net.JoinHostPort(os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
+		Host:     net.JoinHostPort(host, port),
 		Path:     os.Getenv("DB_NAME"),
 		RawQuery: "sslmode=" + sslMode,
 	}

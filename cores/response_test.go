@@ -155,6 +155,25 @@ func TestRespNotFound(t *testing.T) {
 	}
 }
 
+func TestRespConflict(t *testing.T) {
+	app := newTestApp(func(c fiber.Ctx) error {
+		return cores.RespConflict(c, "resource already exists", "duplicate key")
+	})
+
+	resp, err := doTest(t, app, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.StatusCode != fiber.StatusConflict {
+		t.Fatalf("expected status %d, got %d", fiber.StatusConflict, resp.StatusCode)
+	}
+
+	res := decodeJSON(t, resp.Body)
+	if res.Success || res.Message != "resource already exists" || res.Error != "duplicate key" {
+		t.Fatalf("unexpected payload: %+v", res)
+	}
+}
+
 func TestRespInternalError(t *testing.T) {
 	app := newTestApp(func(c fiber.Ctx) error {
 		return cores.RespInternalError(c, "something failed", io.ErrUnexpectedEOF)

@@ -22,6 +22,8 @@ A minimalist and high-performance Go backend boilerplate using **Fiber v3**. Des
 │   ├── response.go       # Standardized API response helpers
 │   └── validator.go      # Struct validation integration
 ├── docs/                 # Layer & tooling documentation
+├── providers/            # Infrastructure & feature providers (repocontract, redis, etc.)
+│   └── repocontract/     # Repository query & DB pool registry
 ├── spark-cli/            # Source code of the Spark CLI
 └── .env.example          # Environment template
 ```

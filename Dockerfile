@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /app
 
@@ -24,11 +24,16 @@ WORKDIR /app
 # Install ca-certificates and tzdata for TLS and timezone support
 RUN apk add --no-cache ca-certificates tzdata
 
-# Create logs directory
-RUN mkdir -p /app/logs
+# Create non-root user and group
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Create logs directory with proper ownership
+RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
 
 # Copy compiled binary from builder stage
-COPY --from=builder /app/server /app/server
+COPY --from=builder --chown=appuser:appgroup /app/server /app/server
+
+USER appuser
 
 EXPOSE 3000
 

@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -10,12 +9,8 @@ import (
 )
 
 func TestDatabaseConfig_DurationParsing(t *testing.T) {
-	os.Setenv("DB_MAX_CONN_LIFETIME", "1h30m")
-	os.Setenv("DB_MAX_CONN_IDLE_TIME", "15m")
-	defer func() {
-		os.Unsetenv("DB_MAX_CONN_LIFETIME")
-		os.Unsetenv("DB_MAX_CONN_IDLE_TIME")
-	}()
+	t.Setenv("DB_MAX_CONN_LIFETIME", "1h30m")
+	t.Setenv("DB_MAX_CONN_IDLE_TIME", "15m")
 
 	cfg := &config.ConfigRegistry{}
 	err := env.Parse(cfg)

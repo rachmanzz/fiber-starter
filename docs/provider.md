@@ -10,6 +10,7 @@ In this boilerplate structure:
 * **`cores/`**: Strictly reserved for internal, generic framework utilities (Logger, Response formatter, Validator, Global Error Handler). It remains free of external business or infrastructure dependencies.
 * **`app/`**: Contains application-specific business logic (Services, Repositories, Routes, Handlers, Middlewares).
 * **`providers/`**: Placed at the project root to house integrations with external systems and third-party infrastructure:
+  * `providers/repocontract/` (Repository SQLC query & connection pool registry)
   * `providers/redis/` (Cache, distributed locks, pub/sub)
   * `providers/nats/` (NATS JetStream event streaming)
   * `providers/mail/` (Email delivery: SMTP, SES, Sendgrid)

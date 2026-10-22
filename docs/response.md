@@ -78,6 +78,7 @@ Use these helper functions inside your handlers:
 | `cores.RespUnauthorized(c, msg)` | `401 Unauthorized` | Authentication error |
 | `cores.RespForbidden(c, msg)` | `403 Forbidden` | Authorization error |
 | `cores.RespNotFound(c, msg)` | `404 Not Found` | Resource not found |
+| `cores.RespConflict(c, msg, err)` | `409 Conflict` | Resource conflict or duplicate state |
 | `cores.RespInternalError(c, msg, err)`| `500 Internal Server Error` | Internal error (logs error via Zap, hides stack trace from client) |
 
 ---

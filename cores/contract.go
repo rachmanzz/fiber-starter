@@ -1,7 +1,11 @@
 package cores
 
 import (
+	"context"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -90,14 +94,28 @@ func (app *AppContracts) RegisterRoute(routes ...RouteFunc) *AppContracts {
 	return app
 }
 
-func (app *AppContracts) Start() error {
+func (app *AppContracts) Start(config ...fiber.ListenConfig) error {
 	for _, hook := range app.beforeStartHooks {
 		if err := hook(); err != nil {
 			zap.L().Error("pre-start hook failed, aborting server listen", zap.Error(err))
 			return err
 		}
 	}
-	return app.App.Listen(Config().App.Port)
+
+	listenCfg := fiber.ListenConfig{
+		ShutdownTimeout: 10 * time.Second,
+	}
+	if len(config) > 0 {
+		listenCfg = config[0]
+	}
+
+	if listenCfg.GracefulContext == nil {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		listenCfg.GracefulContext = ctx
+	}
+
+	return app.App.Listen(Config().App.Port, listenCfg)
 }
 
 func (app *AppContracts) SetupShutdownHook() {
@@ -107,7 +125,7 @@ func (app *AppContracts) SetupShutdownHook() {
 		} else {
 			zap.L().Info("server shut down successfully")
 		}
-		zap.L().Sync()
+		_ = zap.L().Sync()
 		return nil
 	})
 }
