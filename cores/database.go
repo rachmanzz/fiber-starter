@@ -22,6 +22,13 @@ var (
 	namedContractFn func(name string, pool *pgxpool.Pool)
 )
 
+func normalizePoolName(name string) string {
+	if name == "" {
+		return DefaultDatabaseName
+	}
+	return name
+}
+
 // ConnectDB initializes the default PostgreSQL connection pool and returns an error on failure.
 func ConnectDB() error {
 	_, err := ConnectNamedDB(DefaultDatabaseName, Config().Database)
@@ -30,6 +37,7 @@ func ConnectDB() error {
 
 // ConnectNamedDB initializes a named PostgreSQL connection pool with the provided configuration.
 func ConnectNamedDB(name string, cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
+	name = normalizePoolName(name)
 	dbMu.Lock()
 	if pool, exists := pools[name]; exists && pool != nil {
 		dbMu.Unlock()
@@ -90,9 +98,15 @@ func ConnectNamedDB(name string, cfg config.DatabaseConfig) (*pgxpool.Pool, erro
 }
 
 // RegisterDBPool registers an existing pgxpool.Pool under a designated pointer name.
+// Passing a nil pool removes the pool entry from the registry.
 func RegisterDBPool(name string, pool *pgxpool.Pool) {
+	name = normalizePoolName(name)
 	dbMu.Lock()
-	pools[name] = pool
+	if pool == nil {
+		delete(pools, name)
+	} else {
+		pools[name] = pool
+	}
 	if name == DefaultDatabaseName {
 		db = pool
 	}
@@ -110,6 +124,7 @@ func RegisterDBPool(name string, pool *pgxpool.Pool) {
 
 // HasDB checks if a named database pool is registered.
 func HasDB(name string) bool {
+	name = normalizePoolName(name)
 	dbMu.RLock()
 	defer dbMu.RUnlock()
 	p, exists := pools[name]
@@ -148,20 +163,29 @@ func SetNamedDatabaseContract(fn func(name string, pool *pgxpool.Pool)) {
 	}
 }
 
-// CloseDB closes all active PostgreSQL connection pools safely.
+// CloseDB closes all active PostgreSQL connection pools safely and notifies registered contracts with nil pools.
+// Registered contract callbacks remain intact for subsequent reconnections.
 func CloseDB() {
 	dbMu.Lock()
 	toClose := make(map[string]*pgxpool.Pool, len(pools))
 	for k, v := range pools {
 		toClose[k] = v
 	}
+	hadDefault := db != nil
 	pools = make(map[string]*pgxpool.Pool)
 	db = nil
-	contractFn = nil
-	namedContractFn = nil
+	cFn := contractFn
+	ncFn := namedContractFn
 	dbMu.Unlock()
 
+	if hadDefault && cFn != nil {
+		cFn(nil)
+	}
+
 	for name, pool := range toClose {
+		if ncFn != nil {
+			ncFn(name, nil)
+		}
 		if pool != nil {
 			func() {
 				defer func() { _ = recover() }()
@@ -172,8 +196,9 @@ func CloseDB() {
 	}
 }
 
-// CloseNamedDB closes a specific named PostgreSQL connection pool.
+// CloseNamedDB closes a specific named PostgreSQL connection pool and notifies registered contracts with a nil pool.
 func CloseNamedDB(name string) error {
+	name = normalizePoolName(name)
 	dbMu.Lock()
 	pool, exists := pools[name]
 	if !exists || pool == nil {
@@ -184,7 +209,16 @@ func CloseNamedDB(name string) error {
 	if name == DefaultDatabaseName {
 		db = nil
 	}
+	cFn := contractFn
+	ncFn := namedContractFn
 	dbMu.Unlock()
+
+	if name == DefaultDatabaseName && cFn != nil {
+		cFn(nil)
+	}
+	if ncFn != nil {
+		ncFn(name, nil)
+	}
 
 	func() {
 		defer func() { _ = recover() }()

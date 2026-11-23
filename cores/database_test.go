@@ -89,4 +89,8 @@ func TestDatabaseContract_DefaultPoolBackfill(t *testing.T) {
 	})
 
 	assert.Equal(t, dummyPool, defaultPool)
+
+	// Closing default pool notifies contract with nil
+	cores.CloseDB()
+	assert.Nil(t, defaultPool)
 }

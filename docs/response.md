@@ -91,11 +91,19 @@ Content negotiation is handled automatically by `sendResponse`:
 func sendResponse(c fiber.Ctx, status int, payload BaseResponse) error {
 	c.Vary(fiber.HeaderAccept)
 
-	match := c.Accepts("application/json", "application/x-msgpack", "application/msgpack", "application/vnd.msgpack")
-	if match != "" && match != "application/json" {
+	match := c.Accepts(
+		MIMEApplicationJSON,
+		MIMEApplicationXMsgPack,
+		MIMEApplicationMsgPack,
+		MIMEApplicationVndMsgPack,
+	)
+	if match != "" && match != MIMEApplicationJSON {
 		if err := c.Status(status).MsgPack(payload, match); err != nil {
 			zap.L().Error("failed to encode msgpack response", zap.Error(err))
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
+			return c.Status(fiber.StatusInternalServerError).JSON(BaseResponse{
+				Success: false,
+				Message: "Internal Server Error",
+			})
 		}
 		return nil
 	}

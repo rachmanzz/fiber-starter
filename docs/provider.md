@@ -7,10 +7,10 @@ This document explains the guidelines and conventions for writing and registerin
 ## 1. Architectural Philosophy
 
 In this boilerplate structure:
-* **`cores/`**: Strictly reserved for internal, generic framework utilities (Logger, Response formatter, Validator, Global Error Handler). It remains free of external business or infrastructure dependencies.
-* **`app/`**: Contains application-specific business logic (Services, Repositories, Routes, Handlers, Middlewares).
-* **`providers/`**: Placed at the project root to house integrations with external systems and third-party infrastructure:
-  * `providers/repocontract/` (Repository SQLC query & connection pool registry)
+* **`cores/`**: Houses the core boilerplate foundation and primary third-party integrations required out-of-the-box (Fiber v3 HTTP lifecycle, MessagePack binder, pgxpool database manager, Zap + Lumberjack logger, `go-playground/validator`, and `caarlos0/env` loader).
+* **`app/`**: Contains application-specific business logic (Services, Repositories, Routes, Delivery Handlers, Middlewares).
+* **`providers/`**: Placed at the project root to house additional or pluggable feature providers and external infrastructure adapters:
+  * `providers/repocontract/` (Repository SQLC query registry)
   * `providers/redis/` (Cache, distributed locks, pub/sub)
   * `providers/nats/` (NATS JetStream event streaming)
   * `providers/mail/` (Email delivery: SMTP, SES, Sendgrid)
@@ -156,12 +156,16 @@ package bootstrap
 import (
 	"github.com/rachmanzz/fiber-starter/cores"
 	redisprovider "github.com/rachmanzz/fiber-starter/providers/redis"
+	"github.com/rachmanzz/fiber-starter/providers/repocontract"
 	"go.uber.org/zap"
 )
 
 func RegisterHook(core *cores.AppContracts) {
-	if core.App == nil {
+	if core == nil {
 		return
+	}
+	if core.App == nil {
+		core.CreateApp()
 	}
 
 	// 1. PRE-START: Connect provider before opening HTTP listener
@@ -177,6 +181,7 @@ func RegisterHook(core *cores.AppContracts) {
 		// Close database connection
 		if cores.Config().Database.Enable {
 			cores.CloseDB()
+			repocontract.Reset()
 			zap.L().Info("Database connection pool closed successfully")
 		}
 

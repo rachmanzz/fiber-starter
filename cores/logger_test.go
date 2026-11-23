@@ -22,4 +22,9 @@ func TestNewLogger_Concurrent(t *testing.T) {
 
 	assert.NotNil(t, cores.Logger)
 	assert.NotNil(t, zap.L())
+
+	// CloseLogger and re-initialize via NewLogger safely
+	assert.NoError(t, cores.CloseLogger())
+	cores.NewLogger()
+	assert.NotNil(t, cores.Logger)
 }

@@ -18,17 +18,37 @@ func (app *AppContracts) GlobalErrorHandler(c fiber.Ctx, err error) error {
 	}
 
 	// 1. Check custom error mappers registered by user (e.g. from app/errors)
-	for _, mapper := range app.errorMappers {
+	app.appMu.Lock()
+	mappers := append([]ErrorMapperFn(nil), app.errorMappers...)
+	app.appMu.Unlock()
+
+	for _, mapper := range mappers {
 		if status, payload, handled := mapper(c, err); handled {
+			msg := "Error"
+			switch m := payload.(type) {
+			case fiber.Map:
+				if customMsg, ok := m["message"].(string); ok && customMsg != "" {
+					msg = customMsg
+				}
+			case map[string]any:
+				if customMsg, ok := m["message"].(string); ok && customMsg != "" {
+					msg = customMsg
+				}
+			}
 			return sendResponse(c, status, BaseResponse{
 				Success: false,
-				Message: "Error",
+				Message: msg,
 				Error:   payload,
 			})
 		}
 	}
 
 	// 2. Handle go-playground/validator errors
+	var invalidValErr *validator.InvalidValidationError
+	if errors.As(err, &invalidValErr) {
+		return RespInternalError(c, "Invalid struct validation target", invalidValErr)
+	}
+
 	var valErrs validator.ValidationErrors
 	if errors.As(err, &valErrs) {
 		errMap := make(map[string]string)
@@ -41,7 +61,7 @@ func (app *AppContracts) GlobalErrorHandler(c fiber.Ctx, err error) error {
 	// 3. Handle Fiber v3 Bind errors (e.g. invalid JSON or MsgPack payload)
 	var bindErr *fiber.BindError
 	if errors.As(err, &bindErr) {
-		return RespBadReq(c, "Invalid request payload", bindErr.Error())
+		return RespBadReq(c, "Invalid request payload", "malformed request body or parameters")
 	}
 
 	// 4. Handle Fiber v3 native HTTP errors (e.g. 404, 400, 405)

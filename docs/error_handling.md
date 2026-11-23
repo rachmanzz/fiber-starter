@@ -89,12 +89,12 @@ func InitErrorHandlers(app *cores.AppContracts) {
 
 ### 📦 Custom Error Response Envelope Structure
 
-When a custom error mapper handles an error (`handled = true`), the returned payload is automatically wrapped inside the standard `BaseResponse` envelope:
+When a custom error mapper handles an error (`handled = true`), the returned payload is automatically wrapped inside the standard `BaseResponse` envelope (if the payload is a `fiber.Map` or `map[string]any` containing a non-empty `"message"` string, it also populates the top-level `message` field; otherwise it defaults to `"Error"`):
 
 ```json
 {
   "success": false,
-  "message": "Error",
+  "message": "user with ID 123 not found",
   "error": {
     "code": "USER_NOT_FOUND",
     "message": "user with ID 123 not found"
@@ -110,8 +110,9 @@ If an error is not intercepted by any custom error mappers, `cores.GlobalErrorHa
 
 | Error Type | HTTP Status Code | Default Response Structure |
 | :--- | :--- | :--- |
-| **`validator.ValidationErrors`** | `400 Bad Request` | `{"success": false, "message": "Validation failed", "error": {"Field": "tag"}}` |
-| **`*fiber.BindError`** (JSON / MsgPack parse error) | `400 Bad Request` | `{"success": false, "message": "Invalid request payload", "error": "<details>"}` |
+| **`*validator.InvalidValidationError`** | `500 Internal Server Error` | `{"success": false, "message": "Internal Server Error"}` (logged via Zap) |
+| **`validator.ValidationErrors`** | `400 Bad Request` | `{"success": false, "message": "Validation failed", "error": {"field": "tag"}}` |
+| **`*fiber.BindError`** (JSON / MsgPack parse error) | `400 Bad Request` | `{"success": false, "message": "Invalid request payload", "error": "malformed request body or parameters"}` |
 | **`*fiber.Error`** (e.g. 404, 405) | Error Status Code | `{"success": false, "message": "<Fiber Message>"}` |
 | **Unhandled Error** | `500 Internal Server Error` | `{"success": false, "message": "Internal Server Error"}` (logged via Zap) |
 

@@ -1,4 +1,4 @@
-// Package repocontract provides a centralized repository query and connection pool registry for database access.
+// Package repocontract provides a centralized repository query registry for database access.
 package repocontract
 
 import (
@@ -14,11 +14,16 @@ const DefaultDatabasePointer = "default"
 
 var (
 	regMu      sync.RWMutex
-	pool       *pgxpool.Pool
 	queries    *repository.Queries
-	poolsMap   = make(map[string]*pgxpool.Pool)
 	queriesMap = make(map[string]*repository.Queries)
 )
+
+func normalizePointerName(name string) string {
+	if name == "" {
+		return DefaultDatabasePointer
+	}
+	return name
+}
 
 // DatabaseContract registers the primary PostgreSQL connection pool under the "default" pointer.
 func DatabaseContract(db *pgxpool.Pool) {
@@ -26,27 +31,46 @@ func DatabaseContract(db *pgxpool.Pool) {
 }
 
 // RegisterNamedDatabase registers a database connection pool and instantiates its SQLC Querier.
+// Passing a nil pool unregisters the named database pointer.
 func RegisterNamedDatabase(name string, db *pgxpool.Pool) {
+	name = normalizePointerName(name)
 	regMu.Lock()
 	defer regMu.Unlock()
 
-	var q *repository.Queries
-	if db != nil {
-		q = repository.New(db)
+	if db == nil {
+		delete(queriesMap, name)
+		if name == DefaultDatabasePointer {
+			queries = nil
+		}
+		return
 	}
-	poolsMap[name] = db
+
+	q := repository.New(db)
 	queriesMap[name] = q
 
 	if name == DefaultDatabasePointer {
-		pool = db
 		queries = q
 	}
 }
 
+// UnregisterNamedDatabase removes a named database pointer from the repository contract registry.
+func UnregisterNamedDatabase(name string) {
+	RegisterNamedDatabase(name, nil)
+}
+
 // RegisterNamedQueries registers a pre-instantiated *repository.Queries under a named pointer (useful for testing and mocks).
 func RegisterNamedQueries(name string, q *repository.Queries) {
+	name = normalizePointerName(name)
 	regMu.Lock()
 	defer regMu.Unlock()
+
+	if q == nil {
+		delete(queriesMap, name)
+		if name == DefaultDatabasePointer {
+			queries = nil
+		}
+		return
+	}
 
 	queriesMap[name] = q
 	if name == DefaultDatabasePointer {
@@ -72,13 +96,9 @@ func GetQueries() *repository.Queries {
 
 // GetQueriesNamed retrieves the SQLC Queries instance for a specific named pointer.
 func GetQueriesNamed(name string) (*repository.Queries, error) {
+	target := normalizePointerName(name)
 	regMu.RLock()
 	defer regMu.RUnlock()
-
-	target := name
-	if target == "" {
-		target = DefaultDatabasePointer
-	}
 
 	q, exists := queriesMap[target]
 	if !exists || q == nil {
@@ -92,8 +112,8 @@ func GetQueriesNamed(name string) (*repository.Queries, error) {
 // If the pointer name does not exist, it panics with a descriptive error.
 func Use(name ...string) *repository.Queries {
 	target := DefaultDatabasePointer
-	if len(name) > 0 && name[0] != "" {
-		target = name[0]
+	if len(name) > 0 {
+		target = normalizePointerName(name[0])
 	}
 
 	if target == DefaultDatabasePointer {
@@ -109,34 +129,19 @@ func Use(name ...string) *repository.Queries {
 
 // Has checks if a named database pointer is registered in the contract.
 func Has(name string) bool {
+	target := normalizePointerName(name)
 	regMu.RLock()
 	defer regMu.RUnlock()
 
-	q, exists := queriesMap[name]
+	q, exists := queriesMap[target]
 	return exists && q != nil
 }
 
-// GetPool returns the connection pool for drivers, transactions, or tasks needing raw pool access.
-// If no name is provided (or "default"), returns the default pool.
-// If a specific named pool is requested but not found, returns nil.
-func GetPool(name ...string) *pgxpool.Pool {
-	regMu.RLock()
-	defer regMu.RUnlock()
-
-	if len(name) == 0 || name[0] == "" || name[0] == DefaultDatabasePointer {
-		return pool
-	}
-
-	return poolsMap[name[0]]
-}
-
-// Reset clears all registered pools and queries (useful for test teardown).
+// Reset clears all registered queries (useful for test teardown).
 func Reset() {
 	regMu.Lock()
 	defer regMu.Unlock()
 
-	pool = nil
 	queries = nil
-	poolsMap = make(map[string]*pgxpool.Pool)
 	queriesMap = make(map[string]*repository.Queries)
 }

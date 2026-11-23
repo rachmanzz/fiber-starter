@@ -29,8 +29,8 @@ In `fiber-starter`, `bootstrap/hook.go` uses `RegisterBeforeStart` to initialize
 core.RegisterBeforeStart(func() error {
     // 1. Database Connection & Contract Registration
     if cores.Config().Database.Enable {
-        cores.SetDatabaseContract(func(pool *pgxpool.Pool) {
-            // repocontract.DatabaseContract(pool) // Connects pgx pool to repository queries
+        cores.SetNamedDatabaseContract(func(name string, pool *pgxpool.Pool) {
+            repocontract.RegisterNamedDatabase(name, pool) // Connects pgx pool(s) to repository queries
         })
         if err := cores.ConnectDB(); err != nil {
             return fmt.Errorf("failed to connect to database: %w", err)
@@ -48,11 +48,9 @@ For applications requiring secondary or named database connections (e.g., event 
 ```go
 core.RegisterBeforeStart(func() error {
     if cores.Config().Database.Enable {
-        // Named contract callback receives all named pools
+        // Named contract callback receives all named pools (default and custom)
         cores.SetNamedDatabaseContract(func(name string, pool *pgxpool.Pool) {
-            if name == cores.DefaultDatabaseName {
-                // repocontract.DatabaseContract(pool)
-            }
+            repocontract.RegisterNamedDatabase(name, pool)
         })
 
         // Connect default pool
@@ -78,7 +76,8 @@ Teardown hooks utilize Fiber v3's native lifecycle hooks (`app.Hooks().OnPostShu
 ```go
 core.App.Hooks().OnPostShutdown(func(err error) error {
     if cores.Config().Database.Enable {
-        cores.CloseDB() // Safely closes all active connection pools with panic recovery
+        cores.CloseDB() // Safely closes all active connection pools and notifies contracts
+        repocontract.Reset()
         zap.L().Info("Database connection pool closed successfully")
     }
     return nil

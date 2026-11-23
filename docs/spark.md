@@ -26,5 +26,6 @@ The `spark` binary is a helper tool for common tasks within this project. Here's
 -   `spark dev`: Runs the development server with live-reloading. This requires [Air](https://github.com/air-verse/air) to be installed.
 -   `spark migrate`: Runs database migrations using [Goose](https://github.com/pressly/goose). Supports `--to [version]` (or `-t`) to migrate up to a specific version, and `--dir [path]` (or `-d`) to override the migration directory.
 -   `spark migrate down`: Rolls back the most recently applied migration. Supports `--dir [path]` (or `-d`).
--   `spark migrate new [name]`: Creates a new migration file in the migration directory. Supports `--dir [path]` (or `-d`).
+-   `spark migrate new [name]`: Creates a new migration file in the migration directory (`database/migrations` by default). Supports `--dir [path]` (or `-d`).
+-   `spark sqlc`: Generates type-safe Go repository code in `app/repository/` using [SQLC](https://sqlc.dev/) (`sqlc generate`).
 -   `spark version`: Displays the current version of the Spark CLI.

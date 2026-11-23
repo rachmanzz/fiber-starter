@@ -23,8 +23,9 @@ A minimalist and high-performance Go backend boilerplate using **Fiber v3**. Des
 │   └── validator.go      # Struct validation integration
 ├── docs/                 # Layer & tooling documentation
 ├── providers/            # Infrastructure & feature providers (repocontract, redis, etc.)
-│   └── repocontract/     # Repository query & DB pool registry
+│   └── repocontract/     # Repository SQLC query registry
 ├── spark-cli/            # Source code of the Spark CLI
+├── sqlc.yaml             # SQLC code generation configuration
 └── .env.example          # Environment template
 ```
 
@@ -118,8 +119,25 @@ The `spark` binary is a helper tool for common tasks. Build it first with `go bu
 - `spark dev` - Run development server with live-reloading.
 - `spark migrate` - Run database migrations using [Goose](https://github.com/pressly/goose).
 - `spark migrate down` - Roll back the most recently applied migration.
-- `spark migrate new [name]` - Create a new migration file in `/migrations`.
+- `spark migrate new [name]` - Create a new migration file in `database/migrations`.
+- `spark sqlc` - Generate type-safe Go repository code using [SQLC](https://sqlc.dev/).
 - `spark version` - Show CLI version.
+
+## Documentation
+
+Detailed guides for each layer and feature are available in the [`docs/`](docs/) directory:
+
+- [Bootstrap & Lifecycle Hooks](docs/bootstrap.md)
+- [Database & Repository Contract](docs/database.md)
+- [Database Migrations (Goose)](docs/migrations.md)
+- [Delivery Layer (HTTP Handlers)](docs/delivery.md)
+- [Service Layer](docs/service.md)
+- [External Feature Providers](docs/provider.md)
+- [Dual-Format Responses (JSON & MessagePack)](docs/response.md)
+- [Request Binding & Validation](docs/validation.md)
+- [Global & Custom Error Handling](docs/error_handling.md)
+- [Middleware & Goroutine Context Safety](docs/middleware.md)
+- [Spark CLI Guide](docs/spark.md)
 
 ## License
 

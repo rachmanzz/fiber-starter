@@ -133,6 +133,13 @@ func TestMsgPackInput_ValidationFailure(t *testing.T) {
 	if res.Message != "Validation failed" {
 		t.Fatalf("expected 'Validation failed', got %q", res.Message)
 	}
+	errMap, ok := res.Error.(map[string]any)
+	if !ok {
+		t.Fatalf("expected error map, got %T", res.Error)
+	}
+	if errMap["name"] != "required" || errMap["email"] != "email" {
+		t.Fatalf("expected lowercase json/msgpack tag field names in validation error map, got %+v", errMap)
+	}
 }
 
 func TestMsgPackInput_CorruptedPayload(t *testing.T) {

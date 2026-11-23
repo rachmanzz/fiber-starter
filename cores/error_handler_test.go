@@ -26,6 +26,7 @@ func TestGlobalErrorHandler(t *testing.T) {
 		if errors.As(err, &customErr) {
 			return fiber.StatusTeapot, fiber.Map{
 				"code":    "CUSTOM_TEAPOT",
+				"message": customErr.Error(),
 				"detail":  customErr.Error(),
 			}, true
 		}
@@ -53,6 +54,10 @@ func TestGlobalErrorHandler(t *testing.T) {
 		}
 		if resp.StatusCode != fiber.StatusTeapot {
 			t.Errorf("Expected status %d, got %d", fiber.StatusTeapot, resp.StatusCode)
+		}
+		res := decodeJSON(t, resp.Body)
+		if res.Message != "custom domain error occurred" {
+			t.Errorf("Expected custom message from fiber.Map to populate BaseResponse.Message, got %q", res.Message)
 		}
 	})
 
