@@ -4,14 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"io/fs"
-	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/caarlos0/env/v10"
 	"github.com/joho/godotenv"
+	"github.com/rachmanzz/fiber-starter/config"
 	"github.com/spf13/cobra"
 )
 
@@ -52,9 +52,14 @@ var initCmd = &cobra.Command{
 				return err
 			}
 			if d.IsDir() {
-				if strings.HasPrefix(d.Name(), ".") || d.Name() == "spark-cli" || d.Name() == "node_modules" || d.Name() == "vendor" {
+				if strings.HasPrefix(d.Name(), ".") || d.Name() == "node_modules" || d.Name() == "vendor" || d.Name() == "tmp" {
 					return filepath.SkipDir
 				}
+				return nil
+			}
+			ext := filepath.Ext(d.Name())
+			isGoMod := d.Name() == "go.mod"
+			if !isGoMod && ext != ".go" && ext != ".md" && ext != ".yaml" && ext != ".yml" && ext != ".toml" {
 				return nil
 			}
 			read, err := os.ReadFile(path)
@@ -144,7 +149,7 @@ func getMigrationDir() string {
 	}
 	dir := os.Getenv("MIGRATION_DIR")
 	if dir == "" {
-		return "migrations"
+		return "database/migrations"
 	}
 	return dir
 }
@@ -167,29 +172,12 @@ func prepareGooseEnvironment() {
 }
 
 func buildDSN() string {
-	sslMode := os.Getenv("DB_SSLMODE")
-	if sslMode == "" {
-		sslMode = "disable"
+	var dbCfg config.DatabaseConfig
+	if err := env.Parse(&dbCfg); err != nil {
+		fmt.Printf("Failed to parse database configuration: %v\n", err)
+		os.Exit(1)
 	}
-
-	host := os.Getenv("DB_HOST")
-	if host == "" {
-		host = "localhost"
-	}
-
-	port := os.Getenv("DB_PORT")
-	if port == "" {
-		port = "5432"
-	}
-
-	u := &url.URL{
-		Scheme:   "postgres",
-		User:     url.UserPassword(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD")),
-		Host:     net.JoinHostPort(host, port),
-		Path:     os.Getenv("DB_NAME"),
-		RawQuery: "sslmode=" + sslMode,
-	}
-	return u.String()
+	return dbCfg.DSN()
 }
 
 func executeGoose(args []string) {
@@ -281,6 +269,50 @@ func ensureAirInstalled() {
 	}
 }
 
+var sqlcCmd = &cobra.Command{
+	Use:   "sqlc",
+	Short: "Generate type-safe Go repository code from SQL using sqlc",
+	Run: func(cmd *cobra.Command, args []string) {
+		_ = godotenv.Load()
+		ensureSqlcInstalled()
+
+		for _, dir := range []string{getMigrationDir(), "database/queries"} {
+			if _, err := os.Stat(dir); os.IsNotExist(err) {
+				fmt.Printf("Creating %s directory...\n", dir)
+				if err := os.MkdirAll(dir, 0750); err != nil {
+					fmt.Printf("Failed to create %s directory: %v\n", dir, err)
+					os.Exit(1)
+				}
+			}
+		}
+
+		fmt.Println("Running: sqlc generate")
+		runCmd := exec.Command("sqlc", "generate")
+		runCmd.Stdout = os.Stdout
+		runCmd.Stderr = os.Stderr
+		if err := runCmd.Run(); err != nil {
+			fmt.Printf("sqlc generate failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("sqlc code generation completed successfully.")
+	},
+}
+
+func ensureSqlcInstalled() {
+	_, err := exec.LookPath("sqlc")
+	if err != nil {
+		fmt.Println("sqlc not found. Installing github.com/sqlc-dev/sqlc/cmd/sqlc@latest...")
+		installCmd := exec.Command("go", "install", "github.com/sqlc-dev/sqlc/cmd/sqlc@latest")
+		installCmd.Stdout = os.Stdout
+		installCmd.Stderr = os.Stderr
+		if err := installCmd.Run(); err != nil {
+			fmt.Printf("Failed to install sqlc: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("sqlc installed successfully.")
+	}
+}
+
 func main() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -292,6 +324,7 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(devCmd)
+	rootCmd.AddCommand(sqlcCmd)
 
 	migrateCmd.PersistentFlags().StringVarP(&migrationDirFlag, "dir", "d", "", "migration directory (overrides MIGRATION_DIR and default)")
 	migrateCmd.Flags().StringVarP(&migrateTo, "to", "t", "", "destination migration version")

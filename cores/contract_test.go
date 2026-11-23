@@ -86,3 +86,32 @@ func TestAppContracts_RegisterHook_And_Middleware(t *testing.T) {
 		t.Fatalf("expected middleware to be executed")
 	}
 }
+
+func TestAppContracts_RegisterBeforeCreateApp_AutoInitAndCustomConfigMerge(t *testing.T) {
+	// Calling RegisterRoute and RegisterMiddleware without explicit CreateApp() must auto-initialize safely
+	core := cores.CreateContract().
+		RegisterMiddleware(func(app *fiber.App) {
+			app.Use(func(c fiber.Ctx) error {
+				c.Set("X-Auto-Init", "true")
+				return c.Next()
+			})
+		}).
+		RegisterRoute(func(app *fiber.App) {
+			app.Get("/auto", func(c fiber.Ctx) error {
+				return c.SendString("ok")
+			})
+		})
+
+	core.SetupShutdownHook()
+
+	resp, err := core.App.Test(httptest.NewRequest("GET", "/auto", nil))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	if resp.Header.Get("X-Auto-Init") != "true" {
+		t.Fatalf("expected X-Auto-Init header to be set")
+	}
+}

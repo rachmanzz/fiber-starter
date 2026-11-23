@@ -4,22 +4,19 @@ import (
 	"net/http/httptest"
 	"testing"
 
-
 	"github.com/gofiber/fiber/v3"
-	"github.com/rachmanzz/fiber-starter/app/routes"
 	"github.com/rachmanzz/fiber-starter/bootstrap"
 	"github.com/rachmanzz/fiber-starter/cores"
 )
 
-// newTestApp builds an app following the same flow as Application.Bootstrap:
-// CreateApp -> RegisterMiddleware -> routes.
+// newTestApp builds an app directly using bootstrap.NewApplication().Bootstrap().
 func newTestApp(t *testing.T) *fiber.App {
 	t.Helper()
-	core := cores.CreateContract().
-		CreateApp().
-		RegisterMiddleware(bootstrap.RegisterMiddleware).
-		RegisterRoute(routes.ApiRoute)
-	return core.App
+	application := bootstrap.NewApplication().Bootstrap()
+	if application.Contract() == nil || application.App() == nil {
+		t.Fatal("expected bootstrap.Application to expose non-nil Contract() and App()")
+	}
+	return application.App()
 }
 
 func TestRecoverMiddleware_PanicReturns500(t *testing.T) {

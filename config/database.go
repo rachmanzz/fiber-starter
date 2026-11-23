@@ -8,7 +8,7 @@ import (
 )
 
 type DatabaseConfig struct {
-	Host            string        `env:"DB_HOST"`
+	Host            string        `env:"DB_HOST" envDefault:"localhost"`
 	Port            int           `env:"DB_PORT" envDefault:"5432"`
 	User            string        `env:"DB_USER"`
 	Password        string        `env:"DB_PASSWORD"`
@@ -23,12 +23,28 @@ type DatabaseConfig struct {
 
 // DSN returns the formatted PostgreSQL connection string.
 func (c DatabaseConfig) DSN() string {
+	host := c.Host
+	if host == "" {
+		host = "localhost"
+	}
+	port := c.Port
+	if port <= 0 {
+		port = 5432
+	}
+	sslMode := c.SSLMode
+	if sslMode == "" {
+		sslMode = "disable"
+	}
+
+	q := url.Values{}
+	q.Set("sslmode", sslMode)
+
 	u := &url.URL{
 		Scheme:   "postgres",
 		User:     url.UserPassword(c.User, c.Password),
-		Host:     net.JoinHostPort(c.Host, strconv.Itoa(c.Port)),
+		Host:     net.JoinHostPort(host, strconv.Itoa(port)),
 		Path:     c.Name,
-		RawQuery: "sslmode=" + c.SSLMode,
+		RawQuery: q.Encode(),
 	}
 	return u.String()
 }

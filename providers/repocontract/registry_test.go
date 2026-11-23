@@ -61,7 +61,7 @@ func TestContract_MultiDBRegistry(t *testing.T) {
 	assert.Equal(t, qCustom, repocontract.GetQueries())
 }
 
-func TestContract_PoolRegistry(t *testing.T) {
+func TestContract_DatabasePoolLifecycle(t *testing.T) {
 	repocontract.Reset()
 	defer repocontract.Reset()
 
@@ -71,8 +71,15 @@ func TestContract_PoolRegistry(t *testing.T) {
 	repocontract.RegisterNamedDatabase(repocontract.DefaultDatabasePointer, dummyDefault)
 	repocontract.RegisterNamedDatabase("events", dummyEvents)
 
-	assert.Equal(t, dummyDefault, repocontract.GetPool())
-	assert.Equal(t, dummyDefault, repocontract.GetPool("default"))
-	assert.Equal(t, dummyEvents, repocontract.GetPool("events"))
-	assert.Nil(t, repocontract.GetPool("missing"))
+	assert.True(t, repocontract.Has("default"))
+	assert.True(t, repocontract.Has("events"))
+	assert.NotNil(t, repocontract.GetQueries())
+	assert.NotNil(t, repocontract.Use("events"))
+
+	// Unregistering via nil pool or UnregisterNamedDatabase removes stale queries
+	repocontract.UnregisterNamedDatabase("events")
+	assert.False(t, repocontract.Has("events"))
+
+	repocontract.RegisterNamedDatabase(repocontract.DefaultDatabasePointer, nil)
+	assert.False(t, repocontract.Has("default"))
 }

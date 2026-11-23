@@ -7,10 +7,17 @@ import (
 	"github.com/shamaton/msgpack/v3"
 )
 
+const (
+	MIMEApplicationJSON       = "application/json"
+	MIMEApplicationXMsgPack   = "application/x-msgpack"
+	MIMEApplicationMsgPack    = "application/msgpack"
+	MIMEApplicationVndMsgPack = "application/vnd.msgpack"
+)
+
 var msgpackMIMETypes = []string{
-	"application/x-msgpack",
-	"application/msgpack",
-	"application/vnd.msgpack",
+	MIMEApplicationXMsgPack,
+	MIMEApplicationMsgPack,
+	MIMEApplicationVndMsgPack,
 }
 
 // MsgPackBinder implements fiber.CustomBinder for MessagePack content types.
@@ -26,9 +33,11 @@ func (b *MsgPackBinder) Name() string {
 	return "msgpack"
 }
 
-// MIMETypes returns the supported MessagePack MIME types without dynamic allocations.
+// MIMETypes returns a defensive copy of the supported MessagePack MIME types.
 func (b *MsgPackBinder) MIMETypes() []string {
-	return msgpackMIMETypes
+	out := make([]string, len(msgpackMIMETypes))
+	copy(out, msgpackMIMETypes)
+	return out
 }
 
 // SafeUnmarshal decodes MessagePack data into v using an isolated byte copy.

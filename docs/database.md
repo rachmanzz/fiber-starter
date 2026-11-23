@@ -65,7 +65,7 @@ Database connections and repository contracts are initialized **before** the ser
 core.RegisterBeforeStart(func() error {
     if cores.Config().Database.Enable {
         cores.SetNamedDatabaseContract(func(name string, pool *pgxpool.Pool) {
-            // repocontract.RegisterNamedDatabase(name, pool) // Automatically registers default and any named pool
+            repocontract.RegisterNamedDatabase(name, pool) // Automatically registers default and any named pool
         })
 
         if err := cores.ConnectDB(); err != nil {
@@ -77,7 +77,7 @@ core.RegisterBeforeStart(func() error {
 })
 ```
 
-> **Contract Backfill & Deadlock Safety**: `SetDatabaseContract` and `SetNamedDatabaseContract` invoke their callbacks **after releasing internal mutex locks**, completely eliminating re-entrant deadlocks. If a contract is registered after a database pool has already connected, it immediately backfills the existing pool(s).
+> **Contract Backfill & Teardown Sync**: `SetDatabaseContract` and `SetNamedDatabaseContract` invoke their callbacks **after releasing internal mutex locks**, completely eliminating re-entrant deadlocks. When `CloseDB()` or `CloseNamedDB()` is called, registered contracts are notified with a `nil` pool so stale queries are automatically unregistered.
 
 ### 2. Teardown Hook (`OnPostShutdown`)
 When the application receives termination signals (`SIGINT`, `SIGTERM`), Fiber v3 triggers `OnPostShutdown` to gracefully close all active connection pools:
@@ -87,6 +87,7 @@ When the application receives termination signals (`SIGINT`, `SIGTERM`), Fiber v
 core.App.Hooks().OnPostShutdown(func(err error) error {
     if cores.Config().Database.Enable {
         cores.CloseDB()
+        repocontract.Reset()
         zap.L().Info("Database connection pool closed successfully")
     }
     return nil
@@ -107,12 +108,12 @@ Handlers and services should never interact with database connection pools direc
 | `repocontract.Use("pointer_name")` | Retrieves queries for a named database (e.g. `repocontract.Use("analytics")`). Defaults to `"default"` if omitted. |
 | `repocontract.GetQueriesNamed(name)` | Retrieves queries for a specific named pointer with an error return. |
 | `repocontract.Has(name)` | Checks if a named database repository is registered. |
-| `repocontract.GetPool(name...)` | Returns raw `*pgxpool.Pool` for transactions (`pool.Begin(ctx)`) or third-party drivers. |
+| `repocontract.UnregisterNamedDatabase(name)` | Removes a named database pointer from the contract registry. |
 
 ### Example Service Usage
 
 ```go
-// app/service/user_service.go
+// app/services/user_service.go
 func (s *UserService) GetUser(ctx context.Context, id int64) (*repository.User, error) {
     // 1. Default database queries
     return repocontract.GetQueries().GetUserByID(ctx, id)
@@ -144,25 +145,28 @@ brew install sqlc
 
 ### 2. How to use SQLC
 
-1. **Define Queries**: Place your SQL query files in the `queries/` directory at the project root (e.g., `queries/users.sql`).
+1. **Define Queries**: Place your SQL migration files in `database/migrations/` and SQL query files in `database/queries/` (e.g., `database/queries/users.sql`).
    
 2. **Configuration (`sqlc.yaml`)**:
    ```yaml
    version: "2"
    sql:
-     - schema: "migrations"
-       queries: "queries"
+     - schema: "database/migrations"
+       queries: "database/queries"
        engine: "postgresql"
        gen:
          go:
            package: "repository"
            out: "app/repository"
            sql_package: "pgx/v5"
+           emit_interface: true
    ```
 
 3. **Generate Code**:
    ```bash
+   ./spark sqlc
+   # or directly:
    sqlc generate
    ```
 
-The generated code will populate `app/repository/`. Once generated, uncomment `repocontract.DatabaseContract(pool)` in `bootstrap/hook.go`.
+The generated code will populate `app/repository/` (including the `repository.Querier` interface).

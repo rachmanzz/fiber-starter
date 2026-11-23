@@ -11,17 +11,39 @@ import (
 )
 
 var (
-	Logger     *zap.Logger
-	loggerOnce sync.Once
+	Logger        *zap.Logger
+	loggerMu      sync.Mutex
+	fileLogCloser *lumberjack.Logger
 )
 
 func NewLogger() {
-	loggerOnce.Do(func() {
-		initLogger()
-	})
+	loggerMu.Lock()
+	defer loggerMu.Unlock()
+	if Logger != nil && fileLogCloser != nil {
+		return
+	}
+	initLoggerLocked()
 }
 
-func initLogger() {
+// CloseLogger flushes buffered log entries and closes the underlying rotating file handle if open.
+func CloseLogger() error {
+	loggerMu.Lock()
+	defer loggerMu.Unlock()
+	if Logger != nil {
+		_ = Logger.Sync()
+	}
+	if fileLogCloser != nil {
+		err := fileLogCloser.Close()
+		fileLogCloser = nil
+		nop := zap.NewNop()
+		Logger = nop
+		zap.ReplaceGlobals(nop)
+		return err
+	}
+	return nil
+}
+
+func initLoggerLocked() {
 	logDir := filepath.Dir(Config().Log.Path)
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(logDir, 0750); err != nil {
@@ -36,6 +58,7 @@ func initLogger() {
 		MaxAge:     Config().Log.MaxAge,
 		Compress:   Config().Log.Compress,
 	}
+	fileLogCloser = lumberJackLogger
 
 	var encoderConfig zapcore.EncoderConfig
 	if Config().App.Env == "production" {
@@ -62,6 +85,7 @@ func initLogger() {
 
 	level, err := zapcore.ParseLevel(Config().Log.Level)
 	if err != nil {
+		_, _ = os.Stderr.WriteString("Logger initialization warning: invalid LOG_LEVEL \"" + Config().Log.Level + "\", falling back to \"info\"\n")
 		level = zapcore.InfoLevel
 	}
 

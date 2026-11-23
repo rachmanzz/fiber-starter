@@ -35,7 +35,7 @@ type CreateUserRequest struct {
 Call `c.Bind().Body(&req)` (or `.Query()`, `.Params()`) directly. If validation fails or payload is malformed, `c.Bind()` returns an error that can be handled or returned directly to the Global Error Handler.
 
 ```go
-package handlers
+package delivery
 
 import (
 	"github.com/gofiber/fiber/v3"
@@ -67,7 +67,7 @@ cfg := fiber.Config{
 }
 ```
 
-The adapter implementation [`cores/validator.go`](../cores/validator.go) satisfies Fiber v3's `fiber.StructValidator` interface:
+The adapter implementation [`cores/validator.go`](../cores/validator.go) satisfies Fiber v3's `fiber.StructValidator` interface and resolves field names from `json` or `msgpack` struct tags:
 
 ```go
 type StructValidator struct {
@@ -83,15 +83,15 @@ func (v *StructValidator) Validate(out any) error {
 
 ## 📊 Default Validation Error Output Format
 
-When a request fails validation, the Global Error Handler returns HTTP `400 Bad Request` with a field-by-field error map:
+When a request fails validation, the Global Error Handler returns HTTP `400 Bad Request` with a field-by-field error map keyed by the `json` / `msgpack` field name:
 
 ```json
 {
   "success": false,
   "message": "Validation failed",
   "error": {
-    "Email": "email",
-    "Name": "min"
+    "email": "email",
+    "name": "min"
   }
 }
 ```

@@ -2,7 +2,7 @@
 
 This project uses [Goose](https://github.com/pressly/goose) for managing database migrations. Goose is a widely used, actively maintained migration tool that supports plain SQL migrations with `-- +goose Up` / `-- +goose Down` annotations.
 
-Migration files live in the directory specified by `MIGRATION_DIR` in `.env` (defaults to `migrations/`).
+Migration files live in the directory specified by `MIGRATION_DIR` in `.env` (defaults to `database/migrations/`).
 
 ## Using Spark CLI for Migrations
 
@@ -21,9 +21,9 @@ If goose is not installed, spark will install it automatically via `go install g
 You can also run goose yourself. Build the DSN from your `.env` values:
 
 ```bash
-goose -dir migrations postgres "postgres://user:password@localhost:5432/your_database?sslmode=disable" up
-goose -dir migrations postgres "postgres://user:password@localhost:5432/your_database?sslmode=disable" down
-goose -dir migrations create add_users_table sql
+goose -dir database/migrations postgres "postgres://user:password@localhost:5432/your_database?sslmode=disable" up
+goose -dir database/migrations postgres "postgres://user:password@localhost:5432/your_database?sslmode=disable" down
+goose -dir database/migrations create add_users_table sql
 ```
 
 ## Migration File Format

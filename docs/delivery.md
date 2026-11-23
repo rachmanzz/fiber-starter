@@ -60,7 +60,7 @@ func (h *UserHandler) CreateUser(c fiber.Ctx) error {
 	}
 
 	if err := c.Bind().Body(&req); err != nil {
-		return cores.RespBadReq(c, "Invalid request body", err)
+		return err // Delegates validation & parse errors to GlobalErrorHandler
 	}
 
 	// Delegate to the service layer
